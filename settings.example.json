@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "UserPromptSubmit": [],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/session-start.py",
+            "description": "加载项目上下文，检测包管理器"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/review-trigger.py",
+            "description": "Pre-commit 安全扫描（硬编码密钥、SQL注入）",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/post-edit-python-format.py \"$CLAUDE_FILE_PATH\"",
+            "description": "Python 文件自动 ruff format",
+            "timeout": 10000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/post-edit-python-lint.py \"$CLAUDE_FILE_PATH\"",
+            "description": "Python 文件自动 ruff check --fix",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/stop-check-console-log.py",
+            "description": "检查遗留的 console.log/print 调试语句"
+          }
+        ]
+      }
+    ]
+  }
+}
