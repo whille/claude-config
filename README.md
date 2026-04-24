@@ -29,10 +29,10 @@
 
 ```bash
 # 快速扫描
-/intel 鱼菜共生
+/intel 'ai hermes'
 
 # 深度提取（字幕/代码分析）
-/intel 鱼菜共生 --deep
+/intel 'ai agent harness' --deep
 ```
 
 ### deep-review 四维度审查
@@ -152,7 +152,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/你的用户名/claude-config.git
+git clone https://github.com/whille/claude-config.git
 cd claude-config
 
 # 链接 Skills
