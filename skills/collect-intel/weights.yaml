@@ -1,0 +1,67 @@
+# 领域-专家权重矩阵
+# 用于 collect_intel 自动路由
+
+INVEST:
+  munger-perspective: 0.30
+  duan-yongping-perspective: 0.25
+  taleb-perspective: 0.20
+  naval-perspective: 0.15
+  ma-yun-perspective: 0.10
+
+STARTUP:
+  paul-graham-perspective: 0.30
+  zhang-yiming-perspective: 0.25
+  naval-perspective: 0.15
+  elon-musk-perspective: 0.15
+  ma-yun-perspective: 0.10
+  duan-yongping-perspective: 0.05
+
+PRODUCT:
+  steve-jobs-perspective: 0.40
+  feynman-perspective: 0.25
+  paul-graham-perspective: 0.20
+  zhang-yiming-perspective: 0.15
+
+RISK:
+  taleb-perspective: 0.45
+  munger-perspective: 0.25
+  naval-perspective: 0.15
+  feynman-perspective: 0.15
+
+LEARN:
+  feynman-perspective: 0.45
+  karpathy-perspective: 0.25
+  naval-perspective: 0.15
+  munger-perspective: 0.15
+
+CAREER:
+  naval-perspective: 0.37
+  paul-graham-perspective: 0.30
+  feynman-perspective: 0.20
+  munger-perspective: 0.13
+  # 用户反馈建议补充：
+  # zhang-yiming-perspective: 组织视角
+  # steve-jobs-perspective: 产品视角
+  # elon-musk-perspective: 成本视角
+
+TECH:
+  karpathy-perspective: 0.35
+  ilya-sutskever-perspective: 0.30
+  elon-musk-perspective: 0.20
+  feynman-perspective: 0.15
+
+STRATEGY:
+  munger-perspective: 0.20
+  elon-musk-perspective: 0.20
+  steve-jobs-perspective: 0.15
+  naval-perspective: 0.15
+  zhang-yiming-perspective: 0.15
+  duan-yongping-perspective: 0.10
+  ma-yun-perspective: 0.05
+
+MANAGEMENT:
+  ma-yun-perspective: 0.30
+  duan-yongping-perspective: 0.25
+  zhang-yiming-perspective: 0.20
+  munger-perspective: 0.15
+  naval-perspective: 0.10

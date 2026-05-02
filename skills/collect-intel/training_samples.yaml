@@ -1,0 +1,621 @@
+# Collect Intel 训练样本集
+
+> 用于校准领域-专家权重矩阵
+
+---
+
+## 训练样本格式
+
+```yaml
+sample_id: "SAMPLE-001"
+question: "[用户问题]"
+domain:
+  primary: "[主领域代码]"
+  secondary: ["[次要领域1]", "[次要领域2]"]
+experts:
+  - skill: "[skill名称]"
+    weight: [权重 0.0-1.0]
+    expected_focus: "[预期回答重点]"
+    validation_criteria: "[验证标准]"
+validation:
+  consensus_check: "[共识点检验]"
+  divergence_check: "[分歧点检验]"
+  weight_adjustment_rule: "[权重调整规则]"
+user_feedback: null  # 运行时填充
+```
+
+---
+
+## 样本列表
+
+### SAMPLE-001: 投资决策 - 股票投资
+
+```yaml
+sample_id: "SAMPLE-001"
+question: "泡泡玛特现在值得投资吗？"
+domain:
+  primary: "INVEST"
+  secondary: ["RISK"]
+experts:
+  - skill: "munger-perspective"
+    weight: 0.35
+    expected_focus: |
+      1. 护城河分析：IP竞争优势是什么？能持续多久？
+      2. 管理层激励：谁在赚钱？利益是否对齐？
+      3. 逆向思考：什么情况下一定亏钱？
+      4. 三筐分类：Yes/No/Too Hard？
+    validation_criteria: "必须包含护城河分析和逆向思考"
+
+  - skill: "taleb-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 尾部风险：极端情况下会怎样？
+      2. 反脆弱检验：下跌时能恢复吗？
+      3. 凸性分析：收益分布是凸还是凹？
+    validation_criteria: "必须包含尾部风险分析"
+
+  - skill: "naval-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 长期价值：5年10年后的护城河
+      2. 杠杆思维：IP是产品杠杆吗？
+    validation_criteria: "必须包含长期视角"
+
+  - skill: "zhang-yiming-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 组织能力：团队能力如何？
+      2. 全球化：海外扩张能力
+      3. 产品克制：IP迭代节奏
+    validation_criteria: "必须包含组织视角（中国专家优势）"
+
+validation:
+  consensus_check: "估值方法、风险识别"
+  divergence_check: |
+    - 芒格可能放 Too Hard（不熟悉消费赛道）
+    - Taleb 强调尾部风险（IP依赖单一品类）
+    - 张一鸣可能提供中国消费市场洞察
+  weight_adjustment_rule: |
+    如果芒格明确给出投资判断，提高其权重
+    如果张一鸣提供独特中国视角，提高其权重
+user_feedback:
+  most_useful: "munger-perspective"
+  decision_tendency: "观望"
+  missing_perspective: ["竞争分析", "消费者视角"]
+  overall_score: 8
+  weight_adjustment: null  # 权重配置合理，无需调整
+  timestamp: "2026-05-02"
+```
+
+### SAMPLE-002: 创业决策 - 方向选择
+
+```yaml
+sample_id: "SAMPLE-002"
+question: "我有技术背景，想做一个AI工具，但不确定方向，怎么选？"
+domain:
+  primary: "STARTUP"
+  secondary: ["TECH", "CAREER"]
+experts:
+  - skill: "paul-graham-perspective"
+    weight: 0.35
+    expected_focus: |
+      1. 问题是真实的吗？用户是谁？
+      2. 你能独立启动吗？（技术背景优势）
+      3. PMF检验：用户是否愿意付费？
+      4. 不要为了创业而创业
+    validation_criteria: "必须包含PMF验证逻辑"
+
+  - skill: "zhang-yiming-perspective"
+    weight: 0.30
+    expected_focus: |
+      1. 组织视角：团队还是单干？
+      2. 产品克制：不要一开始做大而全
+      3. 全球化思维：中国市场还是全球市场？
+      4. 延迟满足：不要急于变现
+    validation_criteria: "必须包含组织/产品克制视角"
+
+  - skill: "naval-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 产品化自己：你的技术能产品化吗？
+      2. 杠杆：代码是零边际成本的杠杆
+      3. 复利：选择能积累的方向
+    validation_criteria: "必须包含杠杆思维"
+
+  - skill: "elon-musk-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 第一性原理：AI工具的本质是什么？
+      2. 从物理/成本角度思考：GPU成本、API成本
+    validation_criteria: "必须包含第一性原理分析"
+
+validation:
+  consensus_check: "用户需求验证、MVP思维"
+  divergence_check: |
+    - PG强调独立开发验证
+    - 张一鸣强调组织能力（可能建议找合伙人）
+    - Elon可能质疑"AI工具"这个前提
+  weight_adjustment_rule: |
+    如果PG给出具体方法论，保持高权重
+    如果张一鸣提供独特中国/全球化视角，提高权重
+```
+
+### SAMPLE-003: 学习理解 - 概念解释
+
+```yaml
+sample_id: "SAMPLE-003"
+question: "什么是强化学习？用最简单的话解释。"
+domain:
+  primary: "LEARN"
+  secondary: ["TECH"]
+experts:
+  - skill: "feynman-perspective"
+    weight: 0.45
+    expected_focus: |
+      1. 不用术语，用日常类比
+      2. 具体例子：训练小狗？游戏通关？
+      3. 命名≠理解检验：你说"强化学习"但其实没理解
+      4. 货物崇拜警告：不要只记住公式
+    validation_criteria: "必须用日常类比，不用术语"
+
+  - skill: "karpathy-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 技术直觉：reward signal、policy gradient
+      2. 代码视角：伪代码解释
+      3. 实际应用：游戏AI、机器人
+    validation_criteria: "必须提供技术直觉和代码视角"
+
+  - skill: "naval-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 学习杠杆：这个概念能帮你理解其他什么？
+      2. 复利学习：强化学习思维可迁移
+    validation_criteria: "必须包含学习策略视角"
+
+  - skill: "munger-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 多元思维：强化学习在心理学叫什么？
+      2. 跨学科类比：行为主义的奖励机制
+    validation_criteria: "必须包含跨学科类比"
+
+validation:
+  consensus_check: "核心机制解释、具体例子"
+  divergence_check: |
+    - Feynman用日常类比（训练宠物）
+    - Karpathy用代码视角（梯度下降）
+    - 两者的类比可能不完全一致
+  weight_adjustment_rule: |
+    如果用户反馈"终于理解了"，提高Feynman权重
+    如果用户需要技术细节，提高Karpathy权重
+user_feedback:
+  most_useful: "feynman-perspective"
+  understanding_level: "完全理解"
+  missing_perspective: null
+  overall_score: 10
+  weight_adjustment: null  # 权重配置合理，无需调整
+  timestamp: "2026-05-02"
+```
+
+### SAMPLE-004: 风险管理 - 投资组合
+
+```yaml
+sample_id: "SAMPLE-004"
+question: "我的投资组合年化15%，但最大回撤40%，这样合理吗？"
+domain:
+  primary: "RISK"
+  secondary: ["INVEST"]
+experts:
+  - skill: "taleb-perspective"
+    weight: 0.45
+    expected_focus: |
+      1. 尾部风险：40%回撤意味着什么？
+      2. 反脆弱检验：这个组合是脆弱的
+      3. 凸性分析：收益分布不对称
+      4. 火鸡问题：过去的15%可能只是运气
+    validation_criteria: "必须强调尾部风险和脆弱性"
+
+  - skill: "munger-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 逆向思考：什么导致了40%回撤？
+      2. Lollapalooza效应：多个风险叠加？
+      3. 激励诊断：你的策略是否过度冒险？
+    validation_criteria: "必须包含逆向分析"
+
+  - skill: "naval-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 长期视角：能坚持多久？
+      2. 时间复利：40%回撤需要67%涨幅恢复
+    validation_criteria: "必须包含时间/复利视角"
+
+  - skill: "feynman-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 数据验证：15%是真实的还是幸存者偏差？
+      2. 自欺检测：你是否在选择性看数据？
+    validation_criteria: "必须包含数据验证"
+
+validation:
+  consensus_check: "40%回撤需要关注、风险调整收益"
+  divergence_check: |
+    - Taleb强烈批评（脆弱）
+    - Munger分析原因（逆向）
+    - Feynman质疑数据（验证）
+  weight_adjustment_rule: |
+    如果Taleb指出关键风险，保持高权重
+    如果用户组合有特殊背景，考虑调整权重
+```
+
+### SAMPLE-005: 产品决策 - 功能简化
+
+```yaml
+sample_id: "SAMPLE-005"
+question: "我们的产品功能越来越多，用户反馈复杂，怎么办？"
+domain:
+  primary: "PRODUCT"
+  secondary: ["STRATEGY"]
+experts:
+  - skill: "steve-jobs-perspective"
+    weight: 0.40
+    expected_focus: |
+      1. 极简主义：砍掉什么？
+      2. 用户真正需要什么？（不是用户说什么）
+      3. 聚焦：做减法不是做加法
+      4. 产品克制：说"不"的能力
+    validation_criteria: "必须包含减法/砍功能建议"
+
+  - skill: "feynman-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 货物崇拜检测：功能是形式还是实质？
+      2. 检验：去掉这个功能，用户真的会走吗？
+      3. 反自欺：你们是在帮用户还是在帮自己？
+    validation_criteria: "必须包含货物崇拜检验"
+
+  - skill: "paul-graham-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 用户需求验证：哪个功能是核心？
+      2. MVP思维：回到最初版本
+    validation_criteria: "必须包含MVP/核心功能分析"
+
+  - skill: "zhang-yiming-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 产品克制：延迟满足
+      2. 组织视角：为什么功能越来越多？（KPI驱动？）
+    validation_criteria: "必须包含组织/克制视角"
+
+validation:
+  consensus_check: "简化方向、用户价值聚焦"
+  divergence_check: |
+    - Jobs直接砍（极简）
+    - Feynman检验实质（货物崇拜）
+    - 张一鸣分析组织原因（为什么加功能）
+  weight_adjustment_rule: |
+    如果Jobs给出明确砍功能列表，提高权重
+    如果张一鸣指出组织问题，提高权重（补充视角）
+user_feedback:
+  most_useful: "steve-jobs-perspective"
+  action_tendency: "立即行动"
+  missing_perspective: null
+  overall_score: 10
+  weight_adjustment: null  # 权重配置合理，无需调整
+  timestamp: "2026-05-02"
+```
+
+### SAMPLE-006: 技术选择 - 架构决策
+
+```yaml
+sample_id: "SAMPLE-006"
+question: "我们应该用微服务架构吗？团队只有5个人。"
+domain:
+  primary: "TECH"
+  secondary: ["STARTUP"]
+experts:
+  - skill: "karpathy-perspective"
+    weight: 0.35
+    expected_focus: |
+      1. 工程实践：5人团队不适合微服务
+      2. 复杂度成本：分布式系统的代价
+      3. 团队规模匹配：康威定律
+    validation_criteria: "必须给出明确建议（不推荐）"
+
+  - skill: "elon-musk-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 第一性原理：问题本质是什么？
+      2. 微服务是为了什么？扩展性？部署？
+      3. 成本分析：服务器成本、运维成本
+    validation_criteria: "必须包含本质问题分析"
+
+  - skill: "feynman-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 货物崇拜：为什么用微服务？因为大厂在用？
+      2. 检验：去掉微服务，问题还在吗？
+    validation_criteria: "必须包含货物崇拜检测"
+
+  - skill: "paul-graham-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 创业团队：速度优先
+      2. 过早优化：微服务是优化吗？
+      3. MVP思维：先做出来，再优化
+    validation_criteria: "必须包含创业/速度视角"
+
+validation:
+  consensus_check: "5人团队不推荐微服务、过早优化"
+  divergence_check: |
+    - 所有专家可能都反对微服务
+    - 理由不同：Karpathy工程成本、Elon本质问题、Feynman货物崇拜、PG过早优化
+  weight_adjustment_rule: |
+    如果所有专家一致反对，强化共识权重
+    如果有专家提出特殊情况，记录分歧
+```
+
+### SAMPLE-007: 职业决策 - 辞职创业
+
+```yaml
+sample_id: "SAMPLE-007"
+question: "我该不该辞职创业？"
+domain:
+  primary: "CAREER"
+  secondary: ["STARTUP"]
+experts:
+  - skill: "naval-perspective"
+    weight: 0.40
+    expected_focus: |
+      1. 杠杆思维：你有杠杆吗？
+      2. 产品化自己：技能能产品化吗？
+      3. 复利：创业能积累复利吗？
+      4. 长期主义：5年10年视角
+    validation_criteria: "必须包含杠杆/复利分析"
+
+  - skill: "paul-graham-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 独立思考：你看到的别人没看到的是什么？
+      2. 真实问题：有忍不住想解决的问题吗？
+      3. 不辞职试水：能先做起来吗？
+    validation_criteria: "必须包含独立思考/验证逻辑"
+
+  - skill: "feynman-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 反自欺：是"想创业"还是"不想上班"？
+      2. 深度游戏：创业有内在吸引力吗？
+      3. 货物崇拜：模仿创业者还是真有要做的事？
+    validation_criteria: "必须包含反自欺检测"
+
+  - skill: "munger-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 逆向思考：什么情况下辞职创业一定失败？
+      2. 避免愚蠢：先确保不失败
+    validation_criteria: "必须包含逆向分析"
+
+validation:
+  consensus_check: "不要为创业而创业、先验证再辞职"
+  divergence_check: |
+    - Naval强调杠杆思维
+    - PG强调独立思考
+    - Feynman反自欺检测
+    - Munger逆向切入
+  weight_adjustment_rule: |
+    如果用户提供更多背景，调整专家权重
+    Naval主导职业决策，保持高权重
+user_feedback:
+  most_useful: "paul-graham-perspective"
+  least_useful: null  # 用户说都有帮助
+  missing_perspective: ["zhang-yiming-perspective", "steve-jobs-perspective", "elon-musk-perspective"]
+  overall_score: 8
+  weight_adjustment:
+    naval-perspective: -0.03
+    paul-graham-perspective: +0.05
+    munger-perspective: -0.02
+  timestamp: "2026-05-02"
+```
+
+### SAMPLE-008: 战略决策 - 竞争应对
+
+```yaml
+sample_id: "SAMPLE-008"
+question: "竞争对手推出了类似产品，价格更低，我们怎么办？"
+domain:
+  primary: "STRATEGY"
+  secondary: ["PRODUCT", "STARTUP"]
+experts:
+  - skill: "munger-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 护城河：你的护城河是什么？
+      2. 逆向思考：价格战会怎样结束？
+      3. 激励分析：对手为什么降价？
+    validation_criteria: "必须包含护城河分析"
+
+  - skill: "elon-musk-perspective"
+    weight: 0.25
+    expected_focus: |
+      1. 第一性原理：产品的本质价值是什么？
+      2. 成本分析：你能做到更便宜吗？
+      3. 技术：有技术壁垒吗？
+    validation_criteria: "必须包含第一性原理分析"
+
+  - skill: "steve-jobs-perspective"
+    weight: 0.20
+    expected_focus: |
+      1. 产品差异：用户选择你而不是价格的原因
+      2. 聚焦：不要被价格战分散注意力
+    validation_criteria: "必须包含产品差异视角"
+
+  - skill: "naval-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 杠杆：产品杠杆还是价格杠杆？
+      2. 长期：价格战长期谁赢？
+    validation_criteria: "必须包含长期视角"
+
+  - skill: "zhang-yiming-perspective"
+    weight: 0.15
+    expected_focus: |
+      1. 产品克制：不要盲目跟进价格战
+      2. 组织能力：效率能提升吗？
+    validation_criteria: "必须包含克制视角"
+
+validation:
+  consensus_check: "不盲目打价格战、聚焦差异化"
+  divergence_check: |
+    - Munger分析护城河
+    - Elon分析成本/技术
+    - Jobs强调产品差异
+  weight_adjustment_rule: |
+    根据用户产品类型调整权重
+    技术产品→提高Elon权重
+    消费产品→提高Jobs权重
+```
+
+---
+
+## 权重校准规则
+
+### 规则1: 一致性检验
+
+```python
+def validate_weights(domain_weights):
+    """
+    权重必须满足：
+    1. 所有权重 >= 0
+    2. 权重总和 = 1.0（归一化）
+    3. 主导专家权重 >= 0.30
+    4. 权重数量 3-5 个
+    """
+    assert sum(domain_weights.values()) == 1.0
+    assert all(w >= 0 for w in domain_weights.values())
+    assert max(domain_weights.values()) >= 0.30
+    assert len(domain_weights) >= 3 and len(domain_weights) <= 5
+```
+
+### 规则2: 反馈调优
+
+```python
+def adjust_weight_from_feedback(weights, feedback):
+    """
+    根据用户反馈调整权重
+
+    feedback:
+    - most_useful: 最有用的专家
+    - least_useful: 最没用的专家
+    - missing_perspective: 缺失的视角
+    - overall_score: 整体评分 1-10
+    """
+    if feedback["overall_score"] >= 7:
+        # 高分：微调
+        weights[feedback["most_useful"]] += 0.03
+    else:
+        # 低分：大调
+        weights[feedback["most_useful"]] += 0.05
+        weights[feedback["least_useful"]] -= 0.05
+
+    # 归一化
+    normalize(weights)
+```
+
+### 规则3: 领域迁移
+
+```python
+def transfer_weights(source_domain, target_domain):
+    """
+    当新领域缺乏训练样本时，从相似领域迁移权重
+
+    例如：
+    - FINANCE → INVEST（金融→投资）
+    - LEARNING → LEARN（学习→理解）
+    """
+    base_weights = get_weights(source_domain)
+    # 按专家领域相关性调整
+    for expert, weight in base_weights.items():
+        if expert in get_domain_experts(target_domain):
+            target_weights[expert] = weight * relevance_factor
+    normalize(target_weights)
+```
+
+---
+
+## 样本收集模板
+
+用于后续用户反馈收集：
+
+```yaml
+sample_id: "SAMPLE-XXX"
+question: "[用户问题]"
+domain:
+  primary: "[自动识别]"
+  secondary: "[自动识别]"
+experts_selected: "[自动选择]"
+expert_answers:
+  expert_1: "[回答摘要]"
+  expert_2: "[回答摘要]"
+  ...
+user_feedback:
+  most_useful: "[用户选择]"
+  least_useful: "[用户选择]"
+  missing_perspective: "[用户描述]"
+  overall_score: 1-10
+  comment: "[用户评论]"
+weight_adjustment:
+  expert_1: +X%
+  expert_2: -Y%
+  ...
+timestamp: "[收集时间]"
+```
+
+---
+
+## 训练样本使用方法
+
+### 初始化权重
+
+```bash
+# 加载训练样本，初始化权重矩阵
+python scripts/init_weights.py --samples training_samples.yaml
+```
+
+### 运行测试
+
+```bash
+# 运行测试样本，验证权重效果
+python scripts/test_collect_intel.py --samples training_samples.yaml
+```
+
+### 收集反馈
+
+```bash
+# 收集用户反馈，更新权重
+python scripts/collect_feedback.py --output feedback.yaml
+```
+
+---
+
+## 待补充样本
+
+以下领域需要更多训练样本：
+
+| 领域 | 现有样本 | 需要补充 |
+|------|---------|---------|
+| INVEST | 2 | 3-5 |
+| STARTUP | 2 | 3-5 |
+| PRODUCT | 2 | 3-5 |
+| RISK | 2 | 3-5 |
+| LEARN | 2 | 3-5 |
+| CAREER | 2 | 3-5 |
+| TECH | 2 | 3-5 |
+| STRATEGY | 2 | 3-5 |
+
+**补充方法**：
+1. 实际运行 `collect_intel` 收集真实问题
+2. 用户反馈后记录到训练样本
+3. 定期重新校准权重矩阵
