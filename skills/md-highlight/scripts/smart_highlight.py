@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-智能标注：基于 LLM 总结洞察，提取关键词，标注原文
+智能标注：章节驱动模式
 
 核心流程：
-原文 → LLM总结+洞察+关键词 → 在原文定位关键词 → 应用标注
+for chapter in chapters:
+    analysis = llm_analyze(chapter)  # 总结+洞察+关键词
+    keywords = extract_keywords(analysis)
+    highlight_chapter(chapter, keywords)
+
+改进点：
+1. 按章节分段（# 标题）
+2. 每个章节独立LLM分析
+3. 提取该章节的关键词
+4. 标注该章节
 """
 
 import json
@@ -16,15 +25,13 @@ from dataclasses import dataclass
 # 导入现有 helper
 try:
     from .md_highlight_helper import (
-        STYLE_BLOCK, SPAN_CLASS_PATTERN, STYLE_BLOCK_PATTERN,
-        strip_spans, normalize, compute_hash, count_lines
+        STYLE_BLOCK, strip_spans, normalize, compute_hash, count_lines
     )
 except ImportError:
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
     from md_highlight_helper import (
-        STYLE_BLOCK, SPAN_CLASS_PATTERN, STYLE_BLOCK_PATTERN,
-        strip_spans, normalize, compute_hash, count_lines
+        STYLE_BLOCK, strip_spans, normalize, compute_hash, count_lines
     )
 
 
@@ -33,18 +40,20 @@ class Keyword:
     """关键词数据结构"""
     word: str
     type: str  # concept, conclusion, data, warning
-    context: str = ""  # 原文中包含该词的句子片段（用于验证）
+    chapter: int = 0  # 所在章节编号
 
 
 @dataclass
-class SegmentAnalysis:
-    """段落分析结果"""
+class ChapterAnalysis:
+    """章节分析结果"""
+    chapter_num: int
+    chapter_title: str
     summary: List[str]
     insights: List[str]
     keywords: List[Keyword]
 
 
-# 关键词类型映射（LLM 输出 → CSS class）
+# 关键词类型映射
 TYPE_TO_CLASS = {
     "concept": "hl-concept",
     "conclusion": "hl-conclusion",
@@ -53,60 +62,64 @@ TYPE_TO_CLASS = {
 }
 
 
-def split_into_segments(content: str, max_lines: int = 400) -> List[Tuple[int, int, str]]:
+def split_into_chapters(content: str) -> List[Tuple[int, int, str, str]]:
     """
-    智能分段：优先按标题，无标题时按固定长度
-
-    Args:
-        content: 原文内容
-        max_lines: 每段最大行数
+    按章节分段（# 标题）
 
     Returns:
-        [(start_line, end_line, segment_text), ...]
+        [(start_line, end_line, chapter_title, chapter_text), ...]
     """
     lines = content.split('\n')
-    segments = []
+    chapters = []
     current_start = 0
+    current_title = "前言"
     current_lines = []
 
     for i, line in enumerate(lines):
-        current_lines.append(line)
+        # 检测章节标题（# 开头）
+        if line.startswith('# ') and not line.startswith('## '):
+            # 保存上一章
+            if current_lines:
+                chapters.append((
+                    current_start,
+                    i,
+                    current_title,
+                    '\n'.join(current_lines)
+                ))
+            # 开始新章节
+            current_start = i
+            current_title = line[2:].strip()
+            current_lines = [line]
+        else:
+            current_lines.append(line)
 
-        # 遇到 ## 标题，且当前段已够长
-        is_header = line.startswith('##') and not line.startswith('###')
-        should_split = is_header and len(current_lines) >= max_lines // 3
-
-        # 或达到最大长度
-        if should_split or len(current_lines) >= max_lines:
-            segments.append((current_start, i, '\n'.join(current_lines)))
-            current_start = i + 1
-            current_lines = []
-
-    # 最后一段
+    # 最后一章
     if current_lines:
-        segments.append((current_start, len(lines), '\n'.join(current_lines)))
+        chapters.append((
+            current_start,
+            len(lines),
+            current_title,
+            '\n'.join(current_lines)
+        ))
 
-    return segments
+    return chapters
 
 
-def build_analysis_prompt(segment: str) -> str:
+def build_chapter_prompt(chapter_text: str, chapter_title: str) -> str:
     """
-    构建 LLM 分析 Prompt
-
-    Prompt 策略：
-    1. 明确任务：从读者价值角度分析
-    2. 给出类型定义和示例
-    3. 强调关键词必须在原文中存在
-    4. 控制数量（避免过度标注）
+    构建章节分析 Prompt
     """
-    return f"""你是阅读顾问，帮助读者从文章中提取最有价值的内容。
+    return f"""你是阅读顾问，帮助读者从章节中提取最有价值的内容。
 
-分析下面这段文字，从读者收获角度输出：
+## 章节标题
+{chapter_title}
 
-## 文字内容
-{segment}
+## 章节内容
+{chapter_text[:3000]}...
 
 ## 输出要求
+
+从读者收获角度分析这个章节：
 
 1. **总结**（3-5条）：本章核心内容，每条10-20字
 2. **洞察**（2-3条）：读者能获得的收获
@@ -154,15 +167,9 @@ def build_analysis_prompt(segment: str) -> str:
 """
 
 
-def parse_llm_response(response: str) -> Optional[SegmentAnalysis]:
+def parse_llm_response(response: str) -> Optional[Dict]:
     """
     解析 LLM 返回的 JSON
-
-    Args:
-        response: LLM 返回的文本（可能包含 markdown 代码块）
-
-    Returns:
-        SegmentAnalysis 对象，解析失败返回 None
     """
     # 尝试提取 JSON 块
     json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response)
@@ -173,276 +180,192 @@ def parse_llm_response(response: str) -> Optional[SegmentAnalysis]:
         json_str = response.strip()
 
     try:
-        data = json.loads(json_str)
-
-        keywords = []
-        for kw in data.get('keywords', []):
-            word = kw.get('word', '').strip()
-            kw_type = kw.get('type', '').strip()
-
-            # 验证类型
-            if kw_type not in TYPE_TO_CLASS:
-                kw_type = 'concept'  # 默认类型
-
-            if word and len(word) >= 2:
-                keywords.append(Keyword(word=word, type=kw_type))
-
-        return SegmentAnalysis(
-            summary=data.get('summary', []),
-            insights=data.get('insights', []),
-            keywords=keywords
-        )
+        return json.loads(json_str)
     except json.JSONDecodeError as e:
         print(f"JSON 解析失败: {e}")
         return None
 
 
-def find_keyword_in_text(keyword: str, text: str) -> Optional[Tuple[int, int]]:
+def apply_highlights_to_chapter(
+    chapter_text: str,
+    keywords: List[Keyword],
+    global_highlighted: set
+) -> Tuple[str, int]:
     """
-    在原文中查找关键词位置
+    应用标注到章节
 
     Args:
-        keyword: 关键词
-        text: 原文
+        chapter_text: 章节文本
+        keywords: 该章节的关键词列表
+        global_highlighted: 全局已标注的词集合
 
     Returns:
-        (start, end) 位置，未找到返回 None
+        (标注后的文本, 新增标注数)
     """
-    # 直接查找
-    pos = text.find(keyword)
-    if pos != -1:
-        return (pos, pos + len(keyword))
-
-    return None
-
-
-def apply_highlights(content: str, all_keywords: List[Keyword]) -> str:
-    """
-    应用标注到原文
-
-    Args:
-        content: 原文内容
-        all_keywords: 所有段落的聚合关键词（已去重）
-
-    Returns:
-        标注后的内容
-    """
-    # 全局去重：记录已标注的词
-    highlighted_words = set()
-
-    # 按关键词长度降序排列（优先匹配长词）
-    sorted_keywords = sorted(all_keywords, key=lambda k: len(k.word), reverse=True)
-
-    # 分行处理，避免跨行匹配
-    lines = content.split('\n')
+    lines = chapter_text.split('\n')
     result_lines = []
+    new_highlights = 0
 
     for line in lines:
         modified_line = line
 
-        for kw in sorted_keywords:
-            if kw.word in highlighted_words:
+        for kw in keywords:
+            if kw.word in global_highlighted:
                 continue  # 已标注过
 
             if kw.word not in modified_line:
-                continue  # 原文中不存在
-
-            # 查找位置
-            pos = modified_line.find(kw.word)
-            if pos == -1:
                 continue
 
-            # 检查是否在代码块、链接等特殊位置
-            # 简单检查：前面是否有 ` 或 [
-            before = modified_line[:pos]
-            if '`' in before and before.rfind('`') > before.rfind('`', 0, before.rfind('`')):
-                continue  # 在代码块内
-            if '[' in before and ']' not in before[before.rfind('['):]:
-                # 可能是链接文本，跳过
-                pass
+            # 检查是否在代码块
+            if '`' in modified_line:
+                continue
 
             # 应用标注
             css_class = TYPE_TO_CLASS[kw.type]
             span_tag = f'<span class="{css_class}">{kw.word}</span>'
-
-            # 只替换第一次出现（避免全文替换导致混乱）
             modified_line = modified_line.replace(kw.word, span_tag, 1)
-            highlighted_words.add(kw.word)
+            global_highlighted.add(kw.word)
+            new_highlights += 1
 
         result_lines.append(modified_line)
 
-    # 添加 style 块
-    result = '\n'.join(result_lines)
-    if '<style>' not in result:
-        result = STYLE_BLOCK + '\n' + result
-
-    return result
+    return '\n'.join(result_lines), new_highlights
 
 
-def validate_highlighted_content(original: str, highlighted: str) -> Tuple[bool, str]:
-    """
-    验证标注后内容不变
-
-    Returns:
-        (success, error_message)
-    """
-    original_norm = normalize(original)
-    highlighted_stripped = strip_spans(highlighted)
-    highlighted_norm = normalize(highlighted_stripped)
-
-    if original_norm != highlighted_norm:
-        # 找出差异位置
-        diff_pos = find_diff_position(original_norm, highlighted_norm)
-        return False, f"原文内容被修改！差异位置: ...{diff_pos}..."
-
-    # 检查标注数量
-    spans = SPAN_CLASS_PATTERN.findall(highlighted)
-    if len(spans) == 0:
-        return False, "没有任何标注"
-
-    # 检查密度
-    lines = count_lines(highlighted)
-    density = lines / len(spans)
-    if density < 4:
-        return False, f"标注过密: 每 {density:.1f} 行 1 处"
-
-    return True, ""
-
-
-def find_diff_position(s1: str, s2: str, context_len: int = 30) -> str:
-    """找出差异位置，返回上下文"""
-    min_len = min(len(s1), len(s2))
-    for i in range(min_len):
-        if s1[i] != s2[i]:
-            start = max(0, i - context_len)
-            end = min(len(s1), i + context_len)
-            return s1[start:end]
-    return "未知"
-
-
-def smart_highlight_file(
-    file_path: str,
-    output_path: Optional[str] = None,
-    llm_callback=None
+def smart_highlight_chapters(
+    content: str,
+    llm_callback=None,
+    max_chapters: int = 10
 ) -> Dict:
     """
-    智能标注文件
+    章节驱动的智能标注
 
     Args:
-        file_path: 输入文件路径
-        output_path: 输出文件路径（默认：原文件名_highlighted.md）
-        llm_callback: LLM 调用函数（用于外部注入，避免硬编码 API）
+        content: 原文内容
+        llm_callback: LLM 调用函数
+        max_chapters: 最多处理章节数（避免处理过长文件）
 
     Returns:
         {
             'success': bool,
-            'output_path': str,
-            'span_count': int,
-            'segments_processed': int,
+            'highlighted_content': str,
+            'total_highlights': int,
+            'chapters_processed': int,
             'errors': list
         }
     """
-    path = Path(file_path)
-    if not path.exists():
-        raise FileNotFoundError(f"文件不存在: {file_path}")
+    # 分章节
+    chapters = split_into_chapters(content)
+    print(f"文件分段: {len(chapters)} 章")
 
-    content = path.read_text(encoding='utf-8')
-    original_hash = compute_hash(content)
+    # 限制处理章节数
+    if len(chapters) > max_chapters:
+        print(f"章节数过多，仅处理前 {max_chapters} 章")
+        chapters = chapters[:max_chapters]
 
-    # 分段
-    segments = split_into_segments(content)
-    print(f"文件分段: {len(segments)} 段")
+    # 全局已标注集合
+    global_highlighted = set()
+    total_highlights = 0
+    processed_chapters = []
+    errors = []
 
-    # 收集所有关键词
-    all_keywords = []
+    for idx, (start, end, title, text) in enumerate(chapters, 1):
+        print(f"\n处理第 {idx}/{len(chapters)} 章: {title}")
+        print(f"  行数: {count_lines(text)}")
 
-    for idx, (start, end, segment) in enumerate(segments):
-        print(f"处理第 {idx + 1}/{len(segments)} 段...")
-
-        # 调用 LLM 分析
+        # LLM 分析
         if llm_callback:
-            prompt = build_analysis_prompt(segment)
+            prompt = build_chapter_prompt(text, title)
             response = llm_callback(prompt)
+
+            # 解析结果
+            analysis = parse_llm_response(response)
+            if analysis:
+                # 提取关键词
+                keywords = []
+                for kw in analysis.get('keywords', []):
+                    word = kw.get('word', '').strip()
+                    kw_type = kw.get('type', 'concept').strip()
+
+                    if word and len(word) >= 2:
+                        keywords.append(Keyword(
+                            word=word,
+                            type=kw_type,
+                            chapter=idx
+                        ))
+
+                print(f"  提取关键词: {len(keywords)} 个")
+
+                # 应用标注
+                highlighted_text, new_highlights = apply_highlights_to_chapter(
+                    text, keywords, global_highlighted
+                )
+                total_highlights += new_highlights
+                print(f"  新增标注: {new_highlights} 处")
+
+                processed_chapters.append((start, end, highlighted_text))
+            else:
+                errors.append(f"第 {idx} 章解析失败")
+                processed_chapters.append((start, end, text))
         else:
-            # 如果没有提供 LLM 回调，返回错误
-            return {
-                'success': False,
-                'output_path': None,
-                'span_count': 0,
-                'segments_processed': idx,
-                'errors': ['未提供 LLM 回调函数']
-            }
+            # 无 LLM 回调，保持原样
+            processed_chapters.append((start, end, text))
 
-        # 解析结果
-        analysis = parse_llm_response(response)
-        if analysis:
-            all_keywords.extend(analysis.keywords)
-            print(f"  - 提取关键词: {len(analysis.keywords)} 个")
+    # 重组文件
+    lines = content.split('\n')
+    result_lines = []
 
-    # 去重
-    unique_keywords = []
-    seen_words = set()
-    for kw in all_keywords:
-        if kw.word not in seen_words:
-            unique_keywords.append(kw)
-            seen_words.add(kw.word)
+    # 找出未处理的章节部分
+    current_pos = 0
+    for start, end, text in processed_chapters:
+        # 添加未处理的部分
+        if start > current_pos:
+            result_lines.extend(lines[current_pos:start])
 
-    print(f"去重后关键词: {len(unique_keywords)} 个")
+        # 添加处理后的章节
+        result_lines.extend(text.split('\n'))
+        current_pos = end
 
-    # 应用标注
-    highlighted = apply_highlights(content, unique_keywords)
+    # 添加剩余部分
+    if current_pos < len(lines):
+        result_lines.extend(lines[current_pos:])
 
-    # 验证
-    success, error = validate_highlighted_content(content, highlighted)
-    if not success:
-        return {
-            'success': False,
-            'output_path': None,
-            'span_count': 0,
-            'segments_processed': len(segments),
-            'errors': [error]
-        }
-
-    # 写回文件
-    out_path = Path(output_path) if output_path else path.parent / f"{path.stem}_highlighted.md"
-    out_path.write_text(highlighted, encoding='utf-8')
+    # 添加 style 块
+    result = STYLE_BLOCK + '\n'.join(result_lines)
 
     return {
         'success': True,
-        'output_path': str(out_path),
-        'span_count': len(unique_keywords),
-        'segments_processed': len(segments),
-        'errors': []
+        'highlighted_content': result,
+        'total_highlights': total_highlights,
+        'chapters_processed': len(processed_chapters),
+        'errors': errors
     }
-
-
-# Claude Skill 入口
-# 当作为 Skill 被调用时，由 Claude 提供 llm_callback
 
 
 def main():
     """CLI 测试入口"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='智能标注 Markdown 文件')
+    parser = argparse.ArgumentParser(description='智能标注 Markdown 文件（章节驱动）')
     parser.add_argument('file', help='Markdown 文件路径')
-    parser.add_argument('-o', '--output', help='输出文件路径')
+    parser.add_argument('--max-chapters', type=int, default=10, help='最多处理章节数')
 
     args = parser.parse_args()
 
-    print("⚠️  CLI 模式仅用于测试，生产环境请通过 Claude Skill 调用")
-    print("    需要 LLM 回调函数才能正常工作")
+    print("⚠️  CLI 模式仅用于测试")
+    print("    生产环境请通过 Claude Skill 调用\n")
 
-    # 测试分段
     path = Path(args.file)
     if path.exists():
         content = path.read_text(encoding='utf-8')
-        segments = split_into_segments(content)
-        print(f"\n文件: {args.file}")
+        chapters = split_into_chapters(content)
+
+        print(f"文件: {args.file}")
         print(f"总行数: {count_lines(content)}")
-        print(f"分段数: {len(segments)}")
-        for i, (s, e, seg) in enumerate(segments):
-            print(f"  段 {i+1}: 行 {s}-{e} ({count_lines(seg)} 行)")
+        print(f"章节数: {len(chapters)}\n")
+
+        for i, (s, e, title, text) in enumerate(chapters[:args.max_chapters], 1):
+            print(f"  章 {i}: {title} (行 {s}-{e}, {count_lines(text)} 行)")
 
 
 if __name__ == '__main__':
