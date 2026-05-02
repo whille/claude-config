@@ -1,9 +1,9 @@
 ---
 name: md-highlight
-version: 3.0.0
-description: 从读者价值角度标注文章重点。使用 LLM 总结驱动，自动识别最有价值的内容，无需硬编码规则。
+version: 4.0.0
+description: 从读者价值角度标注文章重点。支持多种LLM Agent（Claude/OpenAI/本地模型），章节驱动分析，自动识别最有价值的内容。
 user-invocable: true
-argument-hint: "<文件路径>"
+argument-hint: "<文件路径> [密度] [agent类型]"
 triggers:
   - "高亮markdown"
   - "标注重点"
@@ -13,9 +13,26 @@ triggers:
 last_updated: 2026-05-02
 ---
 
-# Markdown 智能标注（LLM 驱动版）
+# Markdown 智能标注（多Agent版）
 
-从读者价值角度分析文章，使用 LLM 总结洞察，自动标注最有帮助的内容。无需硬编码关键词，适用于任何类型的文档。
+支持多种LLM Agent的智能标注工具。章节驱动分析，从读者价值角度自动识别最有帮助的内容。
+
+## 支持的Agent类型
+
+| Agent | 特点 | 适用场景 |
+|-------|------|----------|
+| **Claude** | 高质量语义理解 | 默认选项，高质量标注 |
+| **OpenAI** | 快速，成本较低 | 大规模批量处理 |
+| **本地模型** | 隐私保护，离线可用 | 敏感文档处理 |
+
+## 使用方式
+
+```
+/md-highlight <文件路径>                    # 默认：Claude，密度10
+/md-highlight <文件路径> 10 claude         # 指定Claude
+/md-highlight <文件路径> 15 openai         # 指定OpenAI
+/md-highlight <文件路径> 20 local          # 指定本地模型
+```
 
 ## 核心优势（vs 旧版规则匹配）
 
@@ -232,33 +249,40 @@ last_updated: 2026-05-02
 ### 1. 用户调用
 
 ```
-/md-highlight <文件路径>
+/md-highlight <文件路径> [密度]
 ```
 
-### 2. Claude 执行流程
+### 2. Claude 执行流程（章节驱动LLM方案）
 
-**Step 1: 分段分析**
-- Python 脚本分段（每段200-400行）
-- 每段独立处理
+**Step 1: 分章节**
+- Python脚本按 `# 标题` 分段
+- 识别34个章节
 
-**Step 2: LLM 分析（Claude 内部调用）**
-- 无需外部 API 调用
-- Claude 直接分析每段内容
-- 生成总结、洞察、关键词
+**Step 2: 逐章LLM分析（Claude内部调用）**
+```
+for chapter in chapters:
+    prompt = build_analysis_prompt(chapter)
+    response = llm_callback(prompt)  # Claude分析
 
-**Step 3: 定位与标注**
+    # 提取关键词
+    analysis = parse_llm_response(response)
+    keywords.extend(analysis.keywords)
+```
+
+**Step 3: 全局去重**
+- 每个关键词只保留第一次出现
+- 人名全书只标一次
+- 物品名不标注
+
+**Step 4: 应用标注**
 - 在原文中定位关键词
-- 全局去重（每个词只标第一次）
-- 应用 span 标记
+- 应用span标记
+- 添加CSS样式
 
-**Step 4: 验证**
+**Step 5: 验证**
 - 确保原文内容不变
-- 检查标注密度（4-25行/处）
-- 检查标注长度（2-10字）
-
-**Step 5: 输出**
-- 生成 `_highlighted.md` 文件
-- 报告标注数量
+- 检查标注密度
+- 输出结果报告
 
 ## 示例
 
