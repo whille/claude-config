@@ -1,6 +1,6 @@
 ---
 name: scene-img
-version: 3.0.0
+version: 3.1.0
 description: 场景文生图工作流 - 将文本中的场景描述转换为配有 AI 生成图片的 Markdown 文档
 user-invocable: true
 argument-hint: "<URL或本地路径或文本>"
@@ -73,13 +73,43 @@ last_updated: 2026-04-26
    - 人物动作：与场景相关的活动
    - 氛围词：时间、天气、光影
 
-3. **选取关键场景**
+3. **【新增】元素约束表**
+
+   对每个关键场景，生成约束清单：
+
+   | 类别 | 说明 | 示例 |
+   |------|------|------|
+   | ✅ 必须有 | 原文明确提及，不可省略 | "千百竿翠竹" |
+   | ⚠️ 模糊处理 | 原文未细述，用通称 | "游廊" → "传统游廊" |
+   | ❌ 禁止有 | 原文未提及，不应出现 | "紫色花（原文无）" |
+
+   **生成规则**：
+   - 原文明确描述的元素 → 标记 ✅ 必须有
+   - 原文模糊描述 → 标记 ⚠️ 模糊处理
+   - 原文未提及 → 标记 ❌ 禁止有
+
+4. **【新增】核心视觉符号**
+
+   每个场景提取 1-3 个标志性符号：
+
+   | 场景 | 核心符号 | 来源依据 |
+   |------|----------|----------|
+   | 潇湘馆 | 翠竹千百竿 | 人物性格象征 |
+   | 蘅芜苑 | 假山遮屋、异草 | 冷雅氛围关键 |
+   | 稻香村 | 杏花如霞、茅屋 | 田园反差感 |
+
+   **提取原则**：
+   - 选择读者印象最深的元素
+   - 与人物/主题相关联
+   - 具有视觉辨识度
+
+5. **选取关键场景**
    - 最具画面感的段落
    - 场景描写完整
    - 适合文生图渲染
    - 数量：默认 2-3 个，可由用户指定
 
-4. **添加注释/评语**（可选）
+6. **添加注释/评语**（可选）
    - 古典文本：可添加古雅评语
    - 现代文本：可添加赏析注释
    - 说明文字：可添加解释说明
@@ -98,7 +128,9 @@ last_updated: 2026-04-26
 ~/.claude/skills/scene-img/
 ├── references/           # 通用历史资料
 │   ├── dynasty-costume.md
-│   └── dynasty-architecture.md
+│   ├── dynasty-architecture.md
+│   ├── imagery-mapping.md    # 【新增】古文意象映射
+│   └── scene-templates.md     # 【新增】场景类型模板
 └── cache/                # 项目专项缓存
     └── {项目名}/
         └── visual-reference.md
@@ -110,7 +142,11 @@ last_updated: 2026-04-26
    - 存在 → 直接使用缓存内容
    - 不存在 → 执行查证流程 → 保存到缓存
 
-2. **通用资料**：`Read references/dynasty-costume.md`（唐宋元明清速查）
+2. **通用资料**：
+   - `Read references/dynasty-costume.md`（朝代服饰）
+   - `Read references/dynasty-architecture.md`（朝代建筑）
+   - `Read references/imagery-mapping.md`（古文意象映射）
+   - `Read references/scene-templates.md`（场景类型模板）
 
 3. **首次查证后保存**：
    ```markdown
@@ -118,6 +154,31 @@ last_updated: 2026-04-26
    > {朝代} 服饰、器物、建筑参考
    **缓存创建时间**：{日期}
    ```
+
+#### 【新增】古文意象→视觉映射
+
+阅读 `references/imagery-mapping.md`，查找对应意象：
+
+| 古文意象 | 视觉关键词 | 常见误解 |
+|----------|-----------|----------|
+| 白石崚嶒 | gray-white limestone rocks, jagged texture | ❌ 洞穴入口 |
+| 翠竹千百竿 | thousands of emerald bamboo, bamboo grove focus | ❌ 普通植物 |
+| 异草藤蔓 | exotic vines and herbs, no flowers | ❌ 花园花卉 |
+
+**使用原则**：
+- 古文意象优先转换为英文视觉术语
+- 避免常见误解
+- 保持原文修辞意境
+
+#### 【新增】场景类型模板
+
+阅读 `references/scene-templates.md`，匹配场景类型：
+
+| 场景类型 | 氛围关键词 | 必须元素 | 禁止元素 |
+|----------|-----------|----------|----------|
+| 文人宅院 | serene, scholarly | 书卷气、简洁陈设 | 金碧辉煌 |
+| 贵族园林 | ornate, traditional | 精致、对称 | 现代玻璃窗 |
+| 田园茅舍 | rustic, pastoral | 朴素、自然 | 精雕细琢 |
 
 #### 时代识别（从文本推断）
 
@@ -176,11 +237,150 @@ A) {选项1}  B) {选项2}
    - ❌ 自行添加原文没有的元素
 
 5. **历史常识约束（古代建筑）**
+
+   **建筑规模约束（关键）**：
+
+   | 建筑类型 | 规模限制 | Prompt 关键词 |
+   |----------|----------|--------------|
+   | 民居 | 单层，三五开间 | `humble`, `modest`, `simple dwelling` |
+   | 官员宅第 | 单层，三五开间 | `official residence`, `single-story` |
+   | 贵族园林 | 单层为主，偶有阁楼 | `noble garden`, `elegant not grandiose` |
+   | 王府 | 单层为主，七开间 | `prince mansion`, `grand but not palace` |
+   | 皇家宫殿 | 多层，宏大 | `imperial palace`, `grand palace` |
+
+   **常见误解与修正**：
+
+   | 误解 | 原因 | 修正 |
+   |------|------|------|
+   | 贵族园林 → 皇宫 | 过度渲染宏大 | `private garden`, `not imperial scale`, `noble family estate` |
+   | 正殿 → 大殿 | 理解偏差 | `main hall of garden`, `reception pavilion`, `not throne hall` |
+   | 园林 → 皇家御苑 | 园林无明确规模 | `private noble garden`, `family estate`, `not public park` |
+
+   **建筑规模判定原则**：
+
+   | 原文线索 | 判定 | Prompt 关键词 |
+   |----------|------|--------------|
+   | "省亲别墅"/"贵妃" | 贵族园林（非皇宫） | `noble family villa`, `garden for family visit` |
+   | "府"/"宅"/"园" | 私人宅邸 | `private residence`, `family compound` |
+   | "宫"/"殿"（皇家用词） | 可能是皇家 | 需结合上下文 |
+   | 原文无"皇家"/"御" | 默认私人规模 | `private scale`, `not imperial` |
+
+   **大观园规模参考**：
+   - 贾府为侯爵府（贵族，非皇族）
+   - 大观园是为"贵妃省亲"建的私人园林
+   - "正殿"是园内主体建筑，非皇宫大殿
+   - Prompt 用：`main hall within private garden`, `reception pavilion`, `grand but not imperial`
+
+   **建筑规模约束模板**：
+
+   ```
+   【规模约束模块】（贵族园林）
+   private noble garden,
+   not imperial palace,
+   family estate scale,
+   grand but not royal scale,
+   elegant architecture not overwhelming,
+   ```
+
    | 元素 | 限制 | Prompt 关键词 |
    |------|------|--------------|
    | 楼层数 | 民用 1-2 层 | `single-story`, `low`, `modest` |
    | 塔楼 | 罕见，原文未提则不出现 | 避免 `tower`, `pagoda` |
    | 庙宇 | 小型土地庙/山神庙 | `small shrine`, `humble temple` |
+
+6. **【新增】背景约束规则（关键）**
+
+   **问题根源**：AI 易混淆"封闭空间"与"开放空间"，导致背景溢出。
+
+   **场景类型与背景处理**：
+
+   | 场景类型 | 空间性质 | 背景处理 | Prompt 关键词 |
+   |----------|----------|----------|--------------|
+   | **庭院/院落** | 封闭 | 围墙边界，无远景 | `enclosed courtyard`, `within walls`, `no distant view` |
+   | **园林内部** | 封闭 | 园墙边界，无远山 | `within garden walls`, `no distant mountains` |
+   | **室内** | 封闭 | 墙壁边界 | `interior`, `no outdoor view` |
+   | **城市街巷** | 半封闭 | 建筑边界 | `city street`, `buildings on both sides` |
+   | **自然山水** | 开放 | 允许远山 | `distant mountains`, `natural landscape` |
+   | **田野乡村** | 开放 | 允许远景 | `open countryside`, `distant hills` |
+
+   **"山"类元素区分（关键）**：
+
+   | 原文用词类型 | 实指 | Prompt 关键词 |
+   |----------|------|--------------|
+   | 假山、怪石、山石 | 人造假山（园林内） | `artificial rockery`, `garden rocks`, `within enclosed space` |
+   | 坡、丘、阜 | 土坡/小丘（可能是园林内） | `earthen slope`, `small hill`，需判断空间 |
+   | 远山、群山 | 自然远山（开放空间） | `distant mountains`, `natural hills` |
+   | 岳、峰 | 大山（自然场景） | `mountain peak`, `natural mountain` |
+
+   **判断原则**：
+   - 看原文是否提及"墙"、"院"、"园"、"门"等边界词
+   - 园林/庭院内的"山"多为假山
+   - 原文有"出园"、"远望"、"登高"等词才可能有真山远景
+
+   **封闭空间背景模板**：
+
+   ```
+   【背景约束模块】（封闭空间必须包含）
+   within enclosed walls,
+   no distant mountains, no distant landscape,
+   boundary visible (wall/fence/building),
+   enclosed setting,
+   ```
+
+7. **【新增】植物造型约束（关键）**
+
+   **问题根源**：AI 易生成西方式修剪灌木，不符合东方自然美学。
+
+   **园艺风格区分**：
+
+   | 风格 | 特征 | Prompt 关键词 |
+   |------|------|--------------|
+   | **中国传统园林** | 自然形态，不修剪 | `natural untrimmed`, `plants growing freely` |
+   | **西方古典园林** | 几何修剪，整齐对称 | `formal garden`, `manicured hedges`（仅西方题材） |
+   | **日本庭园** | 选型修剪，禅意 | `Japanese garden`, `carefully shaped`（仅日本题材） |
+   | **现代园艺** | 修剪整齐 | `modern garden`, `manicured lawn`（仅现代题材） |
+
+   **中国古典题材禁止元素**：
+
+   | 元素 | 说明 | 负面关键词 |
+   |------|------|-----------|
+   | 几何灌木 | 方形/球形/锥形造型 | `no geometric hedges`, `no topiary` |
+   | 修剪绿篱 | 直线排列的灌木墙 | `no manicured hedges`, `no trimmed hedge wall` |
+   | 现代草坪 | 修剪整齐的草地 | `no manicured lawn` |
+   | 对称花坛 | 几何图案花坛 | `no geometric flower beds` |
+
+   **农业场景 vs 观赏园艺区分**：
+
+   | 类型 | 特征 | Prompt 关键词 |
+   |------|------|--------------|
+   | 菜畦/农田 | 土地划分，种植作物 | `farm fields`, `vegetable plots`, `divided by furrows` |
+   | 果园 | 果树排列，自然形态 | `fruit trees`, `orchard natural form` |
+   | 绿篱/篱笆 | 天然材料编织 | `woven fence`, `natural branch fence` |
+   | 修剪灌木 | 观赏用几何造型 | ❌ 禁止于中国古典题材 |
+
+   **植物造型约束模板**：
+
+   ```
+   【植物约束模块】（中国传统园林/古典文学）
+   natural untrimmed plants,
+   no geometric hedges, no topiary,
+   no manicured garden design,
+   plants growing in natural forms,
+   woven fence if needed, not trimmed hedge,
+   ```
+
+   **特殊场景例外**：
+   - 现代题材可使用 `manicured garden`
+   - 西方古典题材可使用 `formal French garden`, `topiary`
+   - 日本题材使用 `Japanese garden style`（有特定修剪风格）
+
+   **错误示例 vs 正确示例**：
+
+   | ❌ 错误 | ✅ 正确 |
+   |---------|---------|
+   | `enclosed by hills` | `enclosed by garden walls` |
+   | `sloped hillside` | `garden hillside within walls` |
+   | （未说明是园内） | `within noble garden, not wild countryside` |
 
 #### 朝代服饰速查（常见）
 
@@ -196,38 +396,52 @@ A) {选项1}  B) {选项2}
 
 ### Step 3: 生成多媒体
 
-#### 并行执行（推荐）
+#### 【新增】生成前 Prompt 检查
 
-MiniMax API 支持并行调用，可显著提升效率：
+每次生成前，对照元素约束表检查：
 
 ```
-单次响应中同时调用：
-mmx image generate --out-prefix {作品名}_ch{章节}_scene01 &
-mmx image generate --out-prefix {作品名}_ch{章节}_scene02 &
-mmx image generate --out-prefix {作品名}_ch{章节}_scene03 &
-
-然后并行下载图片
+Prompt 检查清单：
+□ 必须元素是否全部包含？
+□ 禁止元素是否已排除？
+□ 核心视觉符号是否突出？
+□ 数量是否精确（one, two, thousands）？
+□ 不确定元素是否模糊处理？
+□ 古文意象是否正确转换？
+□ 背景约束是否正确？
+  - 封闭空间：within walls, no distant view
+  - 园林内假山：courtyard rockery, not wild landscape
+□ 植物造型是否正确？
+  - 中国古典：no geometric hedges, no topiary
+  - 菜畦因农田划分，非修剪灌木
+□ 【新增】建筑规模是否正确？
+  - 贵族园林：private scale, not imperial
+  - 园林正殿：main hall within garden, not throne hall
 ```
 
-**注意**：使用 `--out-prefix` 指定不同前缀避免冲突
+#### 【新增】Prompt 结构化模板
 
-**效率对比**：
-| 执行方式 | 耗时 |
-|----------|------|
-| 串行 | ~100+ 秒 |
-| 并行 | ~60 秒 |
+```
+【必须元素模块】（强制包含）
+{核心符号}, {必须元素},
 
-#### 图片生成规则
+【原文描述模块】
+{原文翻译，保留修辞和数量},
 
-遵循 `.claude/rules/novel-illustration.md` 规则：
+【负面约束模块】（强制排除）
+no {禁止元素1}, no {禁止元素2},
+no flowers (if not mentioned),
 
-**核心规则**：
-- 人物不正面（背影/侧影/剪影/远景小人物）
-- 不确定场景模糊处理（建筑楼层数、具体数量）
-- 视角远近分开（远景 > 中景 > 近景）
-- 东方美学留白
+【背景约束模块】（重要！）
+园林内：within enclosed garden walls, no distant mountains
+园内山石：garden rockery not natural mountain
+园内田园：garden farm plot not countryside
 
-**Prompt 模板**：
+【风格模块】
+{时代背景}, {氛围关键词}, {POV视角}
+```
+
+#### Prompt 模板
 
 **核心原则：内容语言与输入文件一致 + 细节术语用英文**
 
@@ -246,15 +460,79 @@ mmx image generate --out-prefix {作品名}_ch{章节}_scene03 &
    - 原文的排比、递进等修辞应保留
 
 ```
-[时代背景 - 明确历史时期],
-[景物描述 - 原文翻译成现代文字，保留数量],
-[环境规模 - 指明是园林/院落/建筑内部],
-[POV 视角 - 根据场景规模选择],
+【时代背景】{明确历史时期},
+【景物描述】{原文翻译成现代文字，保留数量},
+【核心符号】{核心视觉符号，作为焦点},
+【环境规模】{指明是园林/院落/建筑内部},
+【负面约束】{排除原文未提及元素},
+【POV 视角】{根据场景规模选择},
 traditional Chinese ink painting aesthetic,
 negative space, atmospheric perspective,
-[背景控制 - 避免不符合原文的远景],
 aspect ratio 16:9
 ```
+
+**示例：潇湘馆（改进后）**
+
+```
+【必须元素模块】
+thousands of emerald bamboo screening buildings,
+bamboo grove as main visual focus,
+
+【原文描述模块】
+清代文人宅院，单层房舍非多层，
+千百竿翠竹遮映数间正房，竹影婆娑，
+曲折游廊穿行竹林间，
+后院一株大梨花和芭蕉相映，
+窄沟引泉绕竹基流过，
+
+【负面约束模块】
+no colorful garden flowers,
+no ornate decorations,
+no modern elements,
+
+【风格模块】
+Qing dynasty scholar courtyard,
+single-story buildings,
+traditional wooden lattice windows,
+serene atmosphere, soft lighting,
+eye-level view, enclosed courtyard
+```
+
+#### 并行执行（推荐）
+
+MiniMax API 支持并行调用，可显著提升效率：
+
+```
+单次响应中同时调用：
+mmx image generate --out-prefix {作品名}_ch{章节}_{场景名1} &
+mmx image generate --out-prefix {作品名}_ch{章节}_{场景名2} &
+mmx image generate --out-prefix {作品名}_ch{章节}_{场景名3} &
+
+示例：
+mmx image generate --out-prefix honglou_ch17_xiaoxiang &
+mmx image generate --out-prefix honglou_ch17_daoxiang &
+mmx image generate --out-prefix honglou_ch17_hengwu &
+
+然后并行下载图片
+```
+
+**注意**：使用 `--out-prefix` 指定不同场景名称，避免冲突
+
+**效率对比**：
+| 执行方式 | 耗时 |
+|----------|------|
+| 串行 | ~100+ 秒 |
+| 并行 | ~60 秒 |
+
+#### 图片生成规则
+
+遵循 `.claude/rules/novel-illustration.md` 规则：
+
+**核心规则**：
+- 人物不正面（背影/侧影/剪影/远景小人物）
+- 不确定场景模糊处理（建筑楼层、具体数量）
+- 视角远近分开（远景 > 中景 > 近景）
+- 东方美学留白
 
 **时代背景（必须）**：
 
@@ -265,14 +543,6 @@ aspect ratio 16:9
 | 古典小说（西游记） | `Tang dynasty`, `唐代` |
 | 现代文本 | `modern era`, `当代` |
 | 不确定 | 根据文本线索推断，或询问用户 |
-
-**时代背景示例**：
-```
-清代园林建筑，单层房舍，传统木结构窗棂，
-Qing dynasty Chinese architecture,
-single-story building not multi-story,
-traditional wooden lattice windows not modern glass
-```
 
 **环境规模描述（必须）**：
 
@@ -307,20 +577,6 @@ traditional wooden lattice windows not modern glass
 | 楼 | 高楼 | `two-story pavilion`, `low building` |
 | 池 | 湖泊 | `small pond`, `courtyard pool` |
 
-**尺度参照技巧**：
-- 添加人物作为参照：`small figure for scale`
-- 明确实际大小：`life-sized not miniature`, `human-scale`
-- 具体尺寸：`高度约三米`, `two meters tall`
-
-**示例（中文小说）**：
-```
-武僧背影，戴圆锥形竹斗笠，手持禅杖，
-雪景古道（人行尺度），天色阴沉，
-eye-level view, no distant mountains,
-traditional Chinese ink painting style,
-vast negative space
-```
-
 **英文术语速查**：
 | 类别 | 英文术语 |
 |------|---------|
@@ -330,78 +586,15 @@ vast negative space
 | 风格 | `ink painting style`, `negative space`, `monochrome` |
 | 视角 | `back view`, `silhouette`, `figure in distance` |
 
-#### 提示词技巧
-
-**提示词公式**：
-```
-提示词 = 主体(主体描述) + 场景(场景描述) + 风格 + 镜头语言 + 质量修饰
-```
-
-**核心技巧表**：
-
-| 技巧 | 说明 | 错误示例 | 正确示例 |
-|------|------|----------|----------|
-| **具体化** | 避免模糊词 | ❌ "大房子" | ✅ "两层木结构房屋" |
-| **数量精确** | 用数字限定 | ❌ "白石" | ✅ "一块镜面白石" |
-| **尺度参照** | 添加对比物 | ❌ "假山" | ✅ "life-sized rockery, figure for scale" |
-| **环境限定** | 防止场景溢出 | ❌ "园林" | ✅ "within garden walls, enclosed courtyard" |
-| **背景控制** | 避免不符合远景 | ❌ "亭子" | ✅ "no distant mountains, fill frame" |
-| **POV 明确** | 根据场景选择 | ❌ 默认鸟瞰 | ✅ "eye-level view"（小场景） |
-
-**负向提示词（避免生成）**：
-```
-no text, no watermark, no signature, no frame,
-no distant mountains (园林内场景),
-not miniature (假山/建筑)
-```
-
-**常见问题与解决**：
-
-| 问题 | 原因 | 解决方案 |
-|------|------|----------|
-| 像微缩模型 | 缺少尺度参照 | + `life-sized`, `figure for scale` |
-| 背景太宏大 | 未限制环境 | + `within garden walls`, `no distant mountains` |
-| 数量错误 | 未指定数量 | + `one`, `single`, `two rows` |
-| 添加了原文没有的内容 | 过度推演 | 只写原文明确提及的内容 |
-
-**命令**：
-```bash
-mmx image generate --prompt "..." --aspect-ratio 16:9 --out-dir ./assets --out-prefix honglou_ch17_scene08
-```
-
 #### 音乐生成（默认不生成）
 
 音乐生成默认跳过，仅当用户明确要求时执行。
 
 **触发条件**：用户提及"配乐"、"背景音乐"、"BGM"
 
-**Prompt 模板**：
-
-**核心原则：内容语言与输入文件一致 + 细节术语用英文**
-
-```
-Traditional Chinese instrumental,
-[场景氛围描述 - 与输入语言相同],
-[乐器名称], brief atmospheric, cinematic ambient
-```
-
-**示例（中文场景）**：
-```
-Traditional Chinese instrumental,
-雪夜孤独氛围，古琴独奏，
-guqin, brief atmospheric
-```
-
-**英文术语速查**：
-| 类别 | 英文术语 |
-|------|---------|
-| 氛围 | `mysterious`, `tense`, `sorrowful`, `triumphant` |
-| 时长 | `brief`, `short`, `ambient` |
-| 乐器 | `guqin`, `pipa`, `erhu`, `flute`, `drum` |
-
 **命令**：
 ```bash
-mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./assets/honglou_ch17_scene01_bgm.mp3
+mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./assets/xxx_bgm.mp3
 ```
 
 **注意**：音乐生成仅当用户明确要求时执行。
@@ -432,38 +625,6 @@ mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./asset
 </audio>
 ```
 
-#### 文件结构
-
-```markdown
-# [标题]
-
----
-
-## [章节名]
-
-[原文段落]
-
-<div style="...">【评】[评语]</div>
-
-[下一段落...]
-
----
-
-## [关键场景标题]
-
-<img src="assets/honglou_ch17_scene01.jpg" ...>
-
-<audio controls ...>...</audio>
-
-[继续原文...]
-
----
-
-## 【回后总评】
-
-[整体评价：主题、人物、技法总结]
-```
-
 ---
 
 ### Step 5: 输出文件
@@ -472,18 +633,7 @@ mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./asset
 
 **保存提示词**：`assets/{作品名}_{章节}_prompts.md`（便于回测和复用，与正文同名）
 
-**文件命名规范**：
-
-```
-图片：{作品名}_ch{章节}_scene{场景号}.jpg
-提示词：{作品名}_ch{章节}_prompts.md
-音乐（可选）：{作品名}_ch{章节}_scene{场景号}_bgm.mp3
-
-示例：
-- honglou_ch17_scene01.jpg
-- honglou_ch17_prompts.md
-- honglou_ch17_scene01_bgm.mp3（仅当用户要求配乐时生成）
-```
+**【新增】提示词文件包含约束验证**：
 
 ```markdown
 # 生成提示词记录
@@ -495,20 +645,69 @@ mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./asset
 
 ## 场景一：{场景名}
 
-### 图片 Prompt
+### 元素约束表
+
+| 类别 | 元素 | 来源 |
+|------|------|------|
+| ✅ 必须有 | {元素1} | 原文明确 |
+| ✅ 必须有 | {元素2} | 原文明确 |
+| ⚠️ 模糊处理 | {元素3} | 原文未细述 |
+| ❌ 禁止有 | {元素4} | 原文未提及 |
+
+### 核心视觉符号
+
+{符号1}, {符号2}, {符号3}
+
+### Prompt
+
 ```
 {完整 prompt}
 ```
 
-### 音乐 Prompt
-```
-{完整 prompt}
-```
+### 约束检查
+
+| 检查项 | 状态 |
+|--------|------|
+| 核心元素包含 | ✅/⚠️ |
+| 禁止元素排除 | ✅/⚠️ |
+| 数量精确 | ✅/⚠️ |
+| 意象正确 | ✅/⚠️ |
 
 ---
 
 ## 视觉考据来源
+
 缓存文件：`~/.claude/skills/scene-img/cache/{项目名}/visual-reference.md`
+```
+
+**文件命名规范**：
+
+```
+图片：{作品名}_ch{章节}_{场景名}.jpg
+提示词：{作品名}_ch{章节}_prompts.md
+音乐（可选）：{作品名}_ch{章节}_{场景名}_bgm.mp3
+
+示例：
+- honglou_ch17_xiaoxiang.jpg（潇湘馆）
+- honglou_ch17_daoxiang.jpg（稻香村）
+- honglou_ch17_prompts.md
+- honglou_ch17_xiaoxiang_bgm.mp3
+```
+
+**命名规则**：
+- **无版本后缀**：不使用 `_v2`、`_v3`、`_001` 等版本标记
+- **用场景名代替序号**：`_xiaoxiang` 比 `_scene01` 更易识别
+- **改进覆盖**：优化 Prompt 后重新生成同名图片，覆盖旧图
+- **Markdown 引用稳定**：`![图片](assets/honglou_ch17_xiaoxiang.jpg)` 无需修改
+
+**生成命令示例**：
+
+```bash
+# 使用 --out-prefix 指定无版本号的名称
+mmx image generate --prompt "..." --out-prefix honglou_ch17_xiaoxiang
+
+# 改进后重新生成，同名覆盖
+mmx image generate --prompt "优化后的prompt" --out-prefix honglou_ch17_xiaoxiang
 ```
 
 ---
@@ -531,13 +730,6 @@ mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./asset
 | 氛围描写 | "这段通过光影变化渲染氛围" |
 | 细节点睛 | "\"转身\"一词写出心理转变" |
 
-### 说明文字
-
-| 特征 | 示例 |
-|------|------|
-| 结构说明 | "此处为建筑入口，采用..." |
-| 特色标注 | "核心特征：对称布局" |
-
 ---
 
 ## 执行检查清单
@@ -546,18 +738,21 @@ mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./asset
 - [ ] 内容获取成功
 - [ ] 标题正确提取
 - [ ] 结构清晰
+- [ ] 元素约束表生成
+- [ ] 核心视觉符号提取
 
 生成中：
 - [ ] 场景描写识别完成
 - [ ] 视觉元素考据（时代/环境/器物）
-- [ ] 关键场景选取
+- [ ] 古文意象映射
+- [ ] 场景类型匹配
+- [ ] Prompt 检查清单通过
 - [ ] 图片 prompt 使用正确关键词
-- [ ] 图片 prompt 遵守规则（数量精确、尺度参照、环境限定）
 
 生成后：
 - [ ] Markdown 格式正确
 - [ ] 图片路径正确
-- [ ] 音频路径正确
+- [ ] 提示词文件包含约束验证
 
 ---
 
@@ -570,36 +765,15 @@ mmx music generate --model music-2.6 --prompt "..." --instrumental --out ./asset
 Claude 执行:
 1. WebFetch 获取内容
 2. 分析：提取标题"林教头风雪山神庙"
-3. 识别关键场景：沽酒雪行、山神庙夜宿
-4. Step 2.5 视觉考据：
-   - 时代：北宋
-   - 服饰：原文"毡笠"→ "cone-shaped douli"
-   - 器物：原文"花枪"、"酒葫芦"
-5. 生成图片 x2
-6. 构建 Markdown → 输出：shuihu_chapter10.md
-```
-
-### 示例二：现代散文
-```
-用户: /scene-img "./游记.md"
-
-Claude 执行:
-1. Read 读取本地文件
-2. 分析：识别场景描写段落
-3. 提取关键场景：山间小路、湖畔黄昏
-4. 生成图片 x2
-5. 构建 Markdown → 输出：游记_配图版.md
-```
-
-### 示例三：剧本场景
-```
-用户: /scene-img "剧本第5场：咖啡馆内景，落地窗外下着雨..."
-
-Claude 执行:
-1. 直接分析用户提供的文本
-2. 识别场景：咖啡馆、雨天、落地窗
-3. 生成图片 x1
-4. 输出 Markdown片段
+3. 生成元素约束表：
+   - ✅ 花枪、酒葫芦（原文明确）
+   - ❌ 其他武器（原文未提及）
+4. 提取核心视觉符号：背影、雪景、古庙
+5. Step 2.5 视觉考据：
+   - 查询 imagery-mapping.md："毡笠"→"cone-shaped douli"
+6. Prompt 检查清单通过
+7. 生成图片 x2
+8. 输出：shuihu_chapter10.md + shuihu_chapter10_prompts.md
 ```
 
 ---
@@ -619,7 +793,9 @@ Claude 执行:
 ├── SKILL.md
 ├── references/           # 通用历史资料
 │   ├── dynasty-costume.md
-│   └── dynasty-architecture.md
+│   ├── dynasty-architecture.md
+│   ├── imagery-mapping.md    # 【新增】古文意象映射
+│   └── scene-templates.md     # 【新增】场景类型模板
 └── cache/                # 项目专项缓存
     └── {项目名}/
         └── visual-reference.md
