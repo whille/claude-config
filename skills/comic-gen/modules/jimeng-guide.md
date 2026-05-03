@@ -4,7 +4,71 @@
 
 ---
 
-## 平台信息
+## 方式一：CLI 命令行（推荐）
+
+### 安装
+
+```bash
+# 安装依赖
+pip install openai
+
+# 安装 jimeng CLI
+sudo cp ~/.claude/skills/comic-gen/scripts/jimeng /usr/local/bin/
+sudo chmod +x /usr/local/bin/jimeng
+
+# 验证安装
+jimeng --help
+```
+
+### 配置
+
+```bash
+# 初始化配置
+jimeng init
+```
+
+按提示输入：
+1. **API Key**: 火山方舟控制台获取
+2. **推理接入点 ID**: 选择 `Doubao-Seedream-3.0-t2i`
+
+**获取方式**：
+1. 访问 https://console.volcengine.com/ark
+2. API Key管理 → 创建 API Key
+3. 在线推理 → 创建推理接入点 → 选择文生图模型
+
+### 使用
+
+```bash
+# 单张生成
+jimeng generate "林黛玉，病态美，潇湘馆竹林，水墨风格"
+
+# 指定尺寸
+jimeng generate "大观园全景" -s 1920x1080
+
+# 指定文件名前缀
+jimeng generate "林黛玉葬花" -p hongloumeng_ch17_frame01
+
+# 批量生成
+cat > prompts.txt << EOF
+林黛玉，潇湘馆，抚琴，水墨风格
+林黛玉，潇湘馆，执笔写字，水墨风格
+林黛玉，潇湘馆，倚窗远眺，水墨风格
+EOF
+jimeng batch prompts.txt -p hongloumeng_ch17 -w 3
+
+# 查看配置
+jimeng config
+```
+
+### 输出位置
+
+生成的图片保存在 `~/.jimeng/output/` 目录。
+
+---
+
+## 方式二：网页版
+
+### 平台信息
 
 | 项目 | 内容 |
 |------|------|

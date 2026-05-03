@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+"""
+即梦 CLI - 火山方舟文生图命令行工具
+
+Usage:
+    jimeng init              # 配置 API Key
+    jimeng generate <prompt> # 生成图片
+    jimeng batch <file>      # 批量生成
+    jimeng config            # 显示当前配置
+"""
+
+import os
+import sys
+import json
+import base64
+import argparse
+from pathlib import Path
+from datetime import datetime
+
+# 配置文件路径
+CONFIG_DIR = Path.home() / ".jimeng"
+CONFIG_FILE = CONFIG_DIR / "config.json"
+OUTPUT_DIR = CONFIG_DIR / "output"
+
+def load_config():
+    """加载配置"""
+    if not CONFIG_FILE.exists():
+        return None
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return None
+
+def save_config(config):
+    """保存配置"""
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=2)
+    print(f"✅ 配置已保存到 {CONFIG_FILE}")
+
+def check_dependencies():
+    """检查依赖"""
+    try:
+        from openai import OpenAI
+        return True
+    except ImportError:
+        print("❌ 缺少依赖: openai")
+        print("请运行: pip install openai")
+        return False
+
+def cmd_init(args):
+    """初始化配置"""
+    print("🔧 即梦 CLI 配置向导")
+    print()
+    print("请访问火山方舟控制台获取配置信息:")
+    print("  1. 控制台: https://console.volcengine.com/ark")
+    print("  2. 创建 API Key: API Key管理 → 创建 API Key")
+    print("  3. 创建接入点: 在线推理 → 创建推理接入点 → 选择 Doubao-Seedream-3.0-t2i")
+    print()
+
+    api_key = input("请输入 API Key: ").strip()
+    if not api_key:
+        print("❌ API Key 不能为空")
+        return
+
+    endpoint_id = input("请输入推理接入点 ID: ").strip()
+    if not endpoint_id:
+        print("❌ 接入点 ID 不能为空")
+        return
+
+    config = {
+        "api_key": api_key,
+        "endpoint_id": endpoint_id,
+        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+        "output_dir": str(OUTPUT_DIR)
+    }
+
+    save_config(config)
+    print()
+    print("✅ 配置完成!")
+    print(f"   API Key: {api_key[:8]}...")
+    print(f"   接入点: {endpoint_id[:16]}...")
+
+def cmd_generate(args):
+    """生成图片"""
+    config = load_config()
+    if not config:
+        print("❌ 未配置，请先运行: jimeng init")
+        return
+
+    if not check_dependencies():
+        return
+
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url=config["base_url"],
+        api_key=config["api_key"],
+    )
+
+    prompt = args.prompt
+    output_dir = Path(config.get("output_dir", OUTPUT_DIR))
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 生成文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    prefix = args.prefix or f"jimeng_{timestamp}"
+    output_file = output_dir / f"{prefix}.jpg"
+
+    print(f"🎨 生成图片...")
+    print(f"   Prompt: {prompt[:50]}..." if len(prompt) > 50 else f"   Prompt: {prompt}")
+
+    try:
+        response = client.images.generate(
+            model=config["endpoint_id"],
+            prompt=prompt,
+            size=args.size,
+            response_format="b64_json",
+            extra_body={"watermark": False}
+        )
+
+        # 保存图片
+        image_data = base64.b64decode(response.data[0].b64_json)
+        with open(output_file, 'wb') as f:
+            f.write(image_data)
+
+        print(f"✅ 图片已保存: {output_file}")
+
+    except Exception as e:
+        print(f"❌ 生成失败: {e}")
+
+def cmd_batch(args):
+    """批量生成"""
+    config = load_config()
+    if not config:
+        print("❌ 未配置，请先运行: jimeng init")
+        return
+
+    if not check_dependencies():
+        return
+
+    from openai import OpenAI
+    import concurrent.futures
+
+    # 读取 Prompt 文件
+    prompt_file = Path(args.file)
+    if not prompt_file.exists():
+        print(f"❌ 文件不存在: {prompt_file}")
+        return
+
+    with open(prompt_file, 'r') as f:
+        prompts = [line.strip() for line in f if line.strip()]
+
+    print(f"📋 读取到 {len(prompts)} 条 Prompt")
+
+    client = OpenAI(
+        base_url=config["base_url"],
+        api_key=config["api_key"],
+    )
+
+    output_dir = Path(config.get("output_dir", OUTPUT_DIR))
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    def generate_one(index, prompt):
+        try:
+            response = client.images.generate(
+                model=config["endpoint_id"],
+                prompt=prompt,
+                size="1280x720",
+                response_format="b64_json",
+                extra_body={"watermark": False}
+            )
+            image_data = base64.b64decode(response.data[0].b64_json)
+            output_file = output_dir / f"{args.prefix}_{index:03d}.jpg"
+            with open(output_file, 'wb') as f:
+                f.write(image_data)
+            return True, output_file
+        except Exception as e:
+            return False, str(e)
+
+    print(f"🎨 批量生成中...")
+    success_count = 0
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
+        futures = {
+            executor.submit(generate_one, i, p): (i, p)
+            for i, p in enumerate(prompts, 1)
+        }
+        for future in concurrent.futures.as_completed(futures):
+            i, p = futures[future]
+            success, result = future.result()
+            if success:
+                print(f"  ✅ [{i}/{len(prompts)}] {result}")
+                success_count += 1
+            else:
+                print(f"  ❌ [{i}/{len(prompts)}] {result}")
+
+    print(f"\n✅ 完成: {success_count}/{len(prompts)} 成功")
+    print(f"   输出目录: {output_dir}")
+
+def cmd_config(args):
+    """显示配置"""
+    config = load_config()
+    if not config:
+        print("❌ 未配置，请先运行: jimeng init")
+        return
+
+    print("📋 当前配置:")
+    print(f"   API Key: {config['api_key'][:8]}...")
+    print(f"   接入点: {config['endpoint_id'][:16]}...")
+    print(f"   Base URL: {config['base_url']}")
+    print(f"   输出目录: {config.get('output_dir', OUTPUT_DIR)}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="即梦 CLI - 火山方舟文生图工具",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  jimeng init                      # 初始化配置
+  jimeng generate "一只可爱的猫咪"   # 生成图片
+  jimeng generate "林黛玉" -s 1920x1080  # 指定尺寸
+  jimeng batch prompts.txt         # 批量生成
+  jimeng config                    # 显示配置
+"""
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="命令")
+
+    # init
+    parser_init = subparsers.add_parser("init", help="初始化配置")
+
+    # generate
+    parser_gen = subparsers.add_parser("generate", help="生成图片")
+    parser_gen.add_argument("prompt", help="图片描述")
+    parser_gen.add_argument("-s", "--size", default="1280x720", help="图片尺寸 (默认: 1280x720)")
+    parser_gen.add_argument("-p", "--prefix", help="输出文件名前缀")
+
+    # batch
+    parser_batch = subparsers.add_parser("batch", help="批量生成")
+    parser_batch.add_argument("file", help="Prompt 文件 (每行一条)")
+    parser_batch.add_argument("-p", "--prefix", default="batch", help="输出文件名前缀")
+    parser_batch.add_argument("-w", "--workers", type=int, default=3, help="并发数 (默认: 3)")
+
+    # config
+    parser_config = subparsers.add_parser("config", help="显示配置")
+
+    args = parser.parse_args()
+
+    if args.command == "init":
+        cmd_init(args)
+    elif args.command == "generate":
+        cmd_generate(args)
+    elif args.command == "batch":
+        cmd_batch(args)
+    elif args.command == "config":
+        cmd_config(args)
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()
