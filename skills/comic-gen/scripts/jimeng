@@ -74,7 +74,7 @@ def check_dependencies():
         return False
 
 def load_reference_image(reference_path):
-    """加载参考图片并转为 base64"""
+    """加载参考图片并转为 data URI"""
     ref_path = Path(reference_path)
     if not ref_path.exists():
         print(f"❌ 参考图不存在: {ref_path}")
@@ -85,11 +85,13 @@ def load_reference_image(reference_path):
         print(f"❌ 不支持的图片格式: {ref_path.suffix}")
         return None
 
-    # 读取并编码
+    # 读取并编码为 data URI
     try:
         with open(ref_path, 'rb') as f:
             image_data = f.read()
-        return base64.b64encode(image_data).decode('utf-8')
+        mime_type = "image/jpeg" if ref_path.suffix.lower() in ['.jpg', '.jpeg'] else f"image/{ref_path.suffix[1:]}"
+        base64_data = base64.b64encode(image_data).decode('utf-8')
+        return f"data:{mime_type};base64,{base64_data}"
     except Exception as e:
         print(f"❌ 读取参考图失败: {e}")
         return None
@@ -188,19 +190,27 @@ def cmd_generate(args):
     extra_body = {"watermark": False}
 
     # 处理参考图（角色一致性）
+    image_url = None
     if args.reference:
-        ref_base64 = load_reference_image(args.reference)
-        if ref_base64:
-            extra_body["image"] = ref_base64
-            extra_body["strength"] = args.strength  # 参考强度
-            print(f"📐 使用参考图: {args.reference}")
-            print(f"   参考强度: {args.strength}")
+        image_url = load_reference_image(args.reference)
+        if not image_url:
+            return
+        print(f"📐 使用参考图: {args.reference}")
+        print(f"   参考强度: {args.strength}")
 
     print(f"🎨 生成图片 (模型: {config.get('model_version', '4.5')})")
     print(f"   尺寸: {size}")
     print(f"   Prompt: {prompt[:60]}..." if len(prompt) > 60 else f"   Prompt: {prompt}")
 
     try:
+        # 构建请求参数
+        extra_body = {"watermark": False}
+
+        # 添加参考图（通过 extra_body）
+        if image_url:
+            extra_body["image_url"] = image_url
+            extra_body["strength"] = args.strength
+
         response = client.images.generate(
             model=config["endpoint_id"],
             prompt=prompt,
@@ -260,13 +270,13 @@ def cmd_series(args):
     }
 
     # 处理参考图（角色一致性）
+    image_url = None
     if args.reference:
-        ref_base64 = load_reference_image(args.reference)
-        if ref_base64:
-            extra_body["image"] = ref_base64
-            extra_body["strength"] = args.strength
-            print(f"📐 使用参考图: {args.reference}")
-            print(f"   参考强度: {args.strength}")
+        image_url = load_reference_image(args.reference)
+        if not image_url:
+            return
+        print(f"📐 使用参考图: {args.reference}")
+        print(f"   参考强度: {args.strength}")
 
     print(f"🎨 组图生成 (Seedream 4.5)")
     print(f"   模式: {mode}")
@@ -274,7 +284,17 @@ def cmd_series(args):
     print(f"   Prompt: {prompt[:60]}..." if len(prompt) > 60 else f"   Prompt: {prompt}")
 
     try:
-        # Seedream 4.5 组图生成参数
+        # 构建请求参数
+        extra_body = {
+            "watermark": False,
+            "gen_mode": mode,
+        }
+
+        # 添加参考图
+        if image_url:
+            extra_body["image_url"] = image_url
+            extra_body["strength"] = args.strength
+
         response = client.images.generate(
             model=config["endpoint_id"],
             prompt=prompt,
@@ -335,18 +355,18 @@ def cmd_batch(args):
     size = SIZES.get(args.size, args.size)
 
     # 加载参考图（如果指定）
-    ref_base64 = None
+    image_url = None
     if args.reference:
-        ref_base64 = load_reference_image(args.reference)
-        if ref_base64:
+        image_url = load_reference_image(args.reference)
+        if image_url:
             print(f"📐 使用参考图: {args.reference}")
             print(f"   参考强度: {args.strength}")
 
     def generate_one(index, prompt):
         try:
             extra_body = {"watermark": False}
-            if ref_base64:
-                extra_body["image"] = ref_base64
+            if image_url:
+                extra_body["image_url"] = image_url
                 extra_body["strength"] = args.strength
 
             response = client.images.generate(
