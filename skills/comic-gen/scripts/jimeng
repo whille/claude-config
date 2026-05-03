@@ -2,10 +2,13 @@
 """
 即梦 CLI - 火山方舟文生图命令行工具
 
+支持模型: Doubao-Seedream-4.5 (推荐) / Doubao-Seedream-3.0
+
 Usage:
     jimeng init              # 配置 API Key
     jimeng generate <prompt> # 生成图片
     jimeng batch <file>      # 批量生成
+    jimeng series <prompt>   # 组图生成 (Seedream 4.5 特有)
     jimeng config            # 显示当前配置
 """
 
@@ -22,6 +25,25 @@ CONFIG_DIR = Path.home() / ".jimeng"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 OUTPUT_DIR = CONFIG_DIR / "output"
 
+# 支持的模型
+MODELS = {
+    "4.5": "Doubao-Seedream-4.5-t2i (推荐: 2K/4K, 组图生成, 多图融合)",
+    "3.0": "Doubao-Seedream-3.0-t2i (基础版: 1280x720)",
+}
+
+# 支持的尺寸
+SIZES = {
+    "720p": "1280x720",
+    "1080p": "1920x1080",
+    "2k": "2560x1440",
+    "4k": "3840x2160",
+    "1:1": "1024x1024",
+    "16:9": "1920x1080",
+    "9:16": "1080x1920",
+    "3:4": "1536x2048",
+    "4:3": "2048x1536",
+}
+
 def load_config():
     """加载配置"""
     if not CONFIG_FILE.exists():
@@ -36,7 +58,7 @@ def save_config(config):
     """保存配置"""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=2)
+        json.dump(config, f, indent=2, ensure_ascii=False)
     print(f"✅ 配置已保存到 {CONFIG_FILE}")
 
 def check_dependencies():
@@ -56,8 +78,19 @@ def cmd_init(args):
     print("请访问火山方舟控制台获取配置信息:")
     print("  1. 控制台: https://console.volcengine.com/ark")
     print("  2. 创建 API Key: API Key管理 → 创建 API Key")
-    print("  3. 创建接入点: 在线推理 → 创建推理接入点 → 选择 Doubao-Seedream-3.0-t2i")
+    print("  3. 创建接入点: 在线推理 → 创建推理接入点")
     print()
+
+    # 选择模型版本
+    print("选择模型版本:")
+    for key, desc in MODELS.items():
+        print(f"  [{key}] {desc}")
+    print()
+
+    model_version = input("模型版本 (默认 4.5): ").strip() or "4.5"
+    if model_version not in MODELS:
+        print(f"⚠️ 未知版本，使用默认 4.5")
+        model_version = "4.5"
 
     api_key = input("请输入 API Key: ").strip()
     if not api_key:
@@ -72,6 +105,7 @@ def cmd_init(args):
     config = {
         "api_key": api_key,
         "endpoint_id": endpoint_id,
+        "model_version": model_version,
         "base_url": "https://ark.cn-beijing.volces.com/api/v3",
         "output_dir": str(OUTPUT_DIR)
     }
@@ -81,6 +115,7 @@ def cmd_init(args):
     print("✅ 配置完成!")
     print(f"   API Key: {api_key[:8]}...")
     print(f"   接入点: {endpoint_id[:16]}...")
+    print(f"   模型: {MODELS[model_version].split('(')[0].strip()}")
 
 def cmd_generate(args):
     """生成图片"""
@@ -103,19 +138,23 @@ def cmd_generate(args):
     output_dir = Path(config.get("output_dir", OUTPUT_DIR))
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # 解析尺寸
+    size = SIZES.get(args.size, args.size)
+
     # 生成文件名
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     prefix = args.prefix or f"jimeng_{timestamp}"
     output_file = output_dir / f"{prefix}.jpg"
 
-    print(f"🎨 生成图片...")
-    print(f"   Prompt: {prompt[:50]}..." if len(prompt) > 50 else f"   Prompt: {prompt}")
+    print(f"🎨 生成图片 (模型: {config.get('model_version', '4.5')})")
+    print(f"   尺寸: {size}")
+    print(f"   Prompt: {prompt[:60]}..." if len(prompt) > 60 else f"   Prompt: {prompt}")
 
     try:
         response = client.images.generate(
             model=config["endpoint_id"],
             prompt=prompt,
-            size=args.size,
+            size=size,
             response_format="b64_json",
             extra_body={"watermark": False}
         )
@@ -126,6 +165,71 @@ def cmd_generate(args):
             f.write(image_data)
 
         print(f"✅ 图片已保存: {output_file}")
+
+    except Exception as e:
+        print(f"❌ 生成失败: {e}")
+
+def cmd_series(args):
+    """组图生成 (Seedream 4.5 特有)"""
+    config = load_config()
+    if not config:
+        print("❌ 未配置，请先运行: jimeng init")
+        return
+
+    model_version = config.get("model_version", "4.5")
+    if model_version != "4.5":
+        print("⚠️ 组图生成需要 Doubao-Seedream-4.5 模型")
+        print("   请重新运行 jimeng init 选择 4.5 版本")
+        return
+
+    if not check_dependencies():
+        return
+
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url=config["base_url"],
+        api_key=config["api_key"],
+    )
+
+    prompt = args.prompt
+    output_dir = Path(config.get("output_dir", OUTPUT_DIR))
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    count = args.count
+    mode = args.mode
+
+    print(f"🎨 组图生成 (Seedream 4.5)")
+    print(f"   模式: {mode}")
+    print(f"   数量: {count} 张")
+    print(f"   Prompt: {prompt[:60]}..." if len(prompt) > 60 else f"   Prompt: {prompt}")
+
+    try:
+        # Seedream 4.5 组图生成参数
+        response = client.images.generate(
+            model=config["endpoint_id"],
+            prompt=prompt,
+            size="1920x1080",
+            n=count,
+            response_format="b64_json",
+            extra_body={
+                "watermark": False,
+                "gen_mode": mode,  # auto / story_book / comic_strip
+            }
+        )
+
+        # 保存图片
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        prefix = args.prefix or f"series_{timestamp}"
+
+        for i, img_data in enumerate(response.data, 1):
+            image_data = base64.b64decode(img_data.b64_json)
+            output_file = output_dir / f"{prefix}_{i:02d}.jpg"
+            with open(output_file, 'wb') as f:
+                f.write(image_data)
+            print(f"  ✅ [{i}/{count}] {output_file}")
+
+        print(f"\n✅ 组图已保存到: {output_dir}")
 
     except Exception as e:
         print(f"❌ 生成失败: {e}")
@@ -149,7 +253,7 @@ def cmd_batch(args):
         print(f"❌ 文件不存在: {prompt_file}")
         return
 
-    with open(prompt_file, 'r') as f:
+    with open(prompt_file, 'r', encoding='utf-8') as f:
         prompts = [line.strip() for line in f if line.strip()]
 
     print(f"📋 读取到 {len(prompts)} 条 Prompt")
@@ -162,12 +266,14 @@ def cmd_batch(args):
     output_dir = Path(config.get("output_dir", OUTPUT_DIR))
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    size = SIZES.get(args.size, args.size)
+
     def generate_one(index, prompt):
         try:
             response = client.images.generate(
                 model=config["endpoint_id"],
                 prompt=prompt,
-                size="1280x720",
+                size=size,
                 response_format="b64_json",
                 extra_body={"watermark": False}
             )
@@ -209,20 +315,31 @@ def cmd_config(args):
     print("📋 当前配置:")
     print(f"   API Key: {config['api_key'][:8]}...")
     print(f"   接入点: {config['endpoint_id'][:16]}...")
+    print(f"   模型版本: {config.get('model_version', '4.5')}")
     print(f"   Base URL: {config['base_url']}")
     print(f"   输出目录: {config.get('output_dir', OUTPUT_DIR)}")
 
 def main():
     parser = argparse.ArgumentParser(
-        description="即梦 CLI - 火山方舟文生图工具",
+        description="即梦 CLI - 火山方舟文生图工具 (支持 Doubao-Seedream-4.5)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  jimeng init                      # 初始化配置
-  jimeng generate "一只可爱的猫咪"   # 生成图片
-  jimeng generate "林黛玉" -s 1920x1080  # 指定尺寸
-  jimeng batch prompts.txt         # 批量生成
-  jimeng config                    # 显示配置
+  jimeng init                          # 初始化配置
+  jimeng generate "一只可爱的猫咪"       # 生成图片
+  jimeng generate "林黛玉" -s 2k        # 2K 分辨率
+  jimeng series "红楼梦场景" -c 5       # 组图生成 (4.5 特有)
+  jimeng batch prompts.txt             # 批量生成
+  jimeng config                        # 显示配置
+
+支持的尺寸:
+  720p, 1080p, 2k, 4k, 1:1, 16:9, 9:16, 3:4, 4:3
+
+Seedream 4.5 特性:
+  - 2K/4K 高分辨率输出
+  - 组图生成 (一次最多 15 张)
+  - 多图融合 (最多 8 张参考图)
+  - 精准保持原图风格
 """
     )
 
@@ -232,15 +349,24 @@ def main():
     parser_init = subparsers.add_parser("init", help="初始化配置")
 
     # generate
-    parser_gen = subparsers.add_parser("generate", help="生成图片")
+    parser_gen = subparsers.add_parser("generate", help="生成单张图片")
     parser_gen.add_argument("prompt", help="图片描述")
-    parser_gen.add_argument("-s", "--size", default="1280x720", help="图片尺寸 (默认: 1280x720)")
+    parser_gen.add_argument("-s", "--size", default="1080p", help="图片尺寸 (默认: 1080p)")
     parser_gen.add_argument("-p", "--prefix", help="输出文件名前缀")
+
+    # series (Seedream 4.5)
+    parser_series = subparsers.add_parser("series", help="组图生成 (4.5 特有)")
+    parser_series.add_argument("prompt", help="图片描述")
+    parser_series.add_argument("-c", "--count", type=int, default=5, help="生成数量 (默认: 5)")
+    parser_series.add_argument("-m", "--mode", default="auto", choices=["auto", "story_book", "comic_strip"],
+                               help="生成模式: auto/story_book/comic_strip")
+    parser_series.add_argument("-p", "--prefix", help="输出文件名前缀")
 
     # batch
     parser_batch = subparsers.add_parser("batch", help="批量生成")
     parser_batch.add_argument("file", help="Prompt 文件 (每行一条)")
     parser_batch.add_argument("-p", "--prefix", default="batch", help="输出文件名前缀")
+    parser_batch.add_argument("-s", "--size", default="1080p", help="图片尺寸")
     parser_batch.add_argument("-w", "--workers", type=int, default=3, help="并发数 (默认: 3)")
 
     # config
@@ -252,6 +378,8 @@ def main():
         cmd_init(args)
     elif args.command == "generate":
         cmd_generate(args)
+    elif args.command == "series":
+        cmd_series(args)
     elif args.command == "batch":
         cmd_batch(args)
     elif args.command == "config":
