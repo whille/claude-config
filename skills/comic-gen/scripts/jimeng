@@ -351,7 +351,7 @@ Seedream 4.5 特性:
     # generate
     parser_gen = subparsers.add_parser("generate", help="生成单张图片")
     parser_gen.add_argument("prompt", help="图片描述")
-    parser_gen.add_argument("-s", "--size", default="1080p", help="图片尺寸 (默认: 1080p)")
+    parser_gen.add_argument("-s", "--size", default="2k", help="图片尺寸 (默认: 2k)")
     parser_gen.add_argument("-p", "--prefix", help="输出文件名前缀")
 
     # series (Seedream 4.5)
@@ -366,7 +366,7 @@ Seedream 4.5 特性:
     parser_batch = subparsers.add_parser("batch", help="批量生成")
     parser_batch.add_argument("file", help="Prompt 文件 (每行一条)")
     parser_batch.add_argument("-p", "--prefix", default="batch", help="输出文件名前缀")
-    parser_batch.add_argument("-s", "--size", default="1080p", help="图片尺寸")
+    parser_batch.add_argument("-s", "--size", default="2k", help="图片尺寸")
     parser_batch.add_argument("-w", "--workers", type=int, default=3, help="并发数 (默认: 3)")
 
     # config

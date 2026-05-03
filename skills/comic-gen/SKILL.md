@@ -341,8 +341,11 @@ jimeng init
 **生成图片**：
 
 ```bash
-# 单张生成
+# 单张生成（默认 2K 分辨率）
 jimeng generate "林黛玉，病态美，潇湘馆竹林，水墨风格"
+
+# 指定分辨率（2k/4k）
+jimeng generate "大观园全景" -s 4k
 
 # 批量生成
 cat > prompts.txt << EOF
@@ -351,7 +354,12 @@ cat > prompts.txt << EOF
 林黛玉，潇湘馆，倚窗远眺
 EOF
 jimeng batch prompts.txt -p hongloumeng_ch17
+
+# 组图生成（Seedream 4.5 特有）
+jimeng series "大观园场景" -c 10 -m comic_strip -p hongloumeng
 ```
+
+**注意**：Doubao-Seedream-4.5 要求最小 2K 分辨率（2560x1440）。
 
 **优势**：
 - 中国风理解最好
