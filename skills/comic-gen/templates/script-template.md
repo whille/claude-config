@@ -1,103 +1,253 @@
 # 分镜脚本模板
 
-> 小说转漫画的标准输出格式
+> 小说转漫画的标准输出格式（完整版）
 
 ---
+
+## 输出文件列表
+
+| 文件类型 | 命名规则 | 说明 |
+|----------|----------|------|
+| **完整分镜脚本** | `{作品名}_ch{章节}_script_full.md` | 含详细 Prompt、元素约束表 |
+| **漫画文档** | `{作品名}_ch{章节}_comic.md` | 引用原文对白 |
+| **图片文件** | `assets/{作品名}_ch{章节}_frame{序号}.jpg` | 生成的图片 |
+| **Prompt 记录** | `{作品名}_ch{章节}_prompts.txt` | 批量生成用 |
+
+---
+
+## 完整分镜脚本格式
+
+```markdown
+# {作品名} 第{N}回 分镜脚本
 
 ## 基本信息
 
+- **作品**：{作品名}
+- **章节**：第{N}回
+- **回目**：{原文回目}
+- **时代**：{朝代}
+- **核心情节**：{一句话概括}
+- **主要人物**：{人物列表}
+- **总帧数**：{N}帧
+
+---
+
+## 第 1 帧：{帧标题}
+
+- **景别**：全景/中景/近景/特写
+- **内容**：{画面描述，引用原文}
+- **动作**：{人物动作}
+- **表情**：{人物表情}
+- **对白**：{人物}道："{原文对白}"（如有）
+- **转场**：硬切/软切/空镜
+- **时长**：短/中/长
+
+### Prompt（中文）
+
+```
+{时代背景} {题材} {艺术风格}，
+{景别}，{运镜}，
+{场景描述}，
+{人物描述}，
+{动作描述}，
+{表情描述}，
+{环境约束}，
+{氛围关键词}
+```
+
+### Prompt（英文）
+
+```
+{style_prefix},
+{shot_size}, {camera_movement},
+{scene_description},
+{character_description},
+{action_description},
+{expression_description},
+{environment_constraint},
+no {negative_prompts}
+```
+
+---
+
+## 第 2 帧：{帧标题}
+
+...
+
+---
+
+## 元素约束表
+
+### 必须元素
+
+| 元素 | 来源 |
+|------|------|
+| {元素1} | 原文"{引用原文}" |
+| {元素2} | 原文"{引用原文}" |
+
+### 禁止元素
+
+| 元素 | 说明 |
+|------|------|
+| {元素} | {原因} |
+
+---
+
+## 时代风格
+
+- **建筑**：{风格描述}
+- **服饰**：{风格描述}
+- **植物**：{风格描述}
+- **氛围**：{风格描述}
+
+---
+
+## 人物视觉关键词
+
+### {人物名}
+
+```
+{人物视觉描述}
+```
+
+### {人物名}
+
+```
+{人物视觉描述}
+```
+```
+
+---
+
+## 漫画文档格式
+
 ```markdown
-# {作品名} - 第 {N} 回
+# {作品名} - 第{N}回
 
-> 分镜脚本
+> {回目}
 
-**回目**：{原文回目}
 **主要人物**：{人物列表}
 **场景**：{主要场景}
 **氛围**：{整体氛围}
-```
 
 ---
 
-## 分镜脚本格式
+## 第 1 帧：{帧标题}
 
-```markdown
+![Frame 1](assets/{作品名}_ch{章节}_frame_001.jpg)
+
+> {原文场景描述}
+>
+> {人物}道："{原文对白}"
+
 ---
 
-## 第 1 帧
+## 第 2 帧：{帧标题}
 
-### 信息
+![Frame 2](assets/{作品名}_ch{章节}_frame_002.jpg)
 
-| 项目 | 内容 |
+> {原文场景描述}
+
+---
+
+## 完
+
+> {本章概括}
+
+---
+
+## 文件列表
+
+| 文件 | 说明 |
 |------|------|
-| 景别 | 全景 |
-| 内容 | {画面描述} |
-| 人物 | {出现人物} |
-| 动作 | {人物动作} |
-| 表情 | {人物表情} |
-| 对白 | "{原文对白}" |
-| 转场 | 硬切 |
-| 时长 | 中 |
-
-### Prompt
-
-```
-{风格种子词},
-{景别}, {运镜},
-{环境描述},
-{人物描述},
-{动作描述},
-{表情描述},
-{时代背景},
-{氛围关键词},
-no {负面提示词}
+| `{作品名}_ch{章节}_comic.md` | 漫画文档（本文档） |
+| `{作品名}_ch{章节}_script_full.md` | 完整分镜脚本 |
+| `assets/` | 图片文件 |
 ```
 
 ---
 
-## 第 2 帧
+## Prompt 记录文件格式
 
+**文件名**：`{作品名}_ch{章节}_prompts.txt`
+
+**格式**：每行一条 Prompt
+
+```
+{风格前缀}，{景别}，{场景}，{人物}，{动作}
+{风格前缀}，{景别}，{场景}，{人物}，{动作}
 ...
 ```
 
+**用途**：`jimeng batch {作品名}_ch{章节}_prompts.txt -p {作品名}_ch{章节}`
+
 ---
 
-## 模板示例
+## ⚠️ 必须项检查清单
+
+### 分镜脚本必须包含
+
+- [ ] 基本信息（作品、章节、回目、时代、人物）
+- [ ] 每帧详情（景别、内容、动作、表情、对白、转场、时长）
+- [ ] 中文 Prompt（用于即梦）
+- [ ] 英文 Prompt（用于 MiniMax）
+- [ ] 元素约束表（必须/禁止，引用原文）
+- [ ] 时代风格描述
+- [ ] 人物视觉关键词
+
+### 漫画文档必须包含
+
+- [ ] 每帧图片引用
+- [ ] 原文对白引用（不能简化）
+- [ ] 原文场景描述
+- [ ] 文件列表
+
+---
+
+## 示例：水浒传第10回
+
+### 分镜脚本示例
 
 ```markdown
-# 水浒传 - 第 10 回
+# 水浒传 第十回 分镜脚本
 
-> 分镜脚本
+## 基本信息
 
-**回目**：林教头风雪山神庙
-**主要人物**：林冲
-**场景**：山神庙、草料场
-**氛围**：悲壮、紧张
+- **作品**：水浒传
+- **章节**：第十回
+- **回目**：林教头风雪山神庙
+- **时代**：北宋
+- **核心情节**：林冲风雪夜宿山神庙，杀敌报仇
+- **主要人物**：林冲
+- **总帧数**：8帧
 
 ---
 
-## 第 1 帧
+## 第 1 帧：风雪山神庙
 
-### 信息
+- **景别**：全景
+- **内容**：雪夜，破旧山神庙，风雪交加
+- **动作**：无（环境镜头）
+- **表情**：无
+- **对白**：无
+- **转场**：硬切
+- **时长**：长
 
-| 项目 | 内容 |
-|------|------|
-| 景别 | 全景 |
-| 内容 | 雪夜，破旧山神庙，风雪交加 |
-| 人物 | 无（环境镜头） |
-| 动作 | - |
-| 表情 | - |
-| 对白 | - |
-| 转场 | 硬切 |
-| 时长 | 长 |
-
-### Prompt
+### Prompt（中文）
 
 ```
-Qing dynasty noble garden, ink wash painting aesthetic,
-traditional Chinese art style, soft brush strokes,
+北宋时代，江湖武侠，水墨画风格，
+全景镜头，静态镜头，
+风雪交加的夜晚，破旧山神庙，
+厚雪覆盖，寒风呼啸，
+荒凉氛围，悲壮意境
+```
+
+### Prompt（英文）
+
+```
+Northern Song dynasty martial tale, ink wash painting aesthetic,
 wide shot, static shot,
-Northern Song dynasty,
 winter night, heavy snowfall,
 small dilapidated shrine in snowstorm,
 weathered wooden temple,
@@ -105,96 +255,58 @@ thick snow covering everything,
 howling wind, swirling snowflakes,
 desolate atmosphere,
 no modern, Western, photorealistic,
-aspect ratio 16:9
 ```
 
 ---
 
-## 第 2 帧
+## 元素约束表
 
-### 信息
+### 必须元素
 
-| 项目 | 内容 |
+| 元素 | 来源 |
 |------|------|
-| 景别 | 中景 |
-| 内容 | 林冲提着花枪，走向山神庙 |
-| 人物 | 林冲 |
-| 动作 | 行走，持枪 |
-| 表情 | 沉重，警惕 |
-| 对白 | - |
-| 转场 | 硬切 |
-| 时长 | 中 |
+| 破旧山神庙 | 原文"这庙坐东朝西" |
+| 大雪 | 原文"正是严冬天气" |
+| 花枪 | 原文"提着花枪" |
 
-### Prompt
+### 禁止元素
 
-```
-Qing dynasty noble garden, ink wash painting aesthetic,
-traditional Chinese art style, soft brush strokes,
-medium shot, tracking shot,
-Lin Chong from Water Margin,
-middle-aged man, weathered face,
-cone-shaped douli (bamboo hat),
-heavy winter robes,
-carrying spear with tassel (spear with decorative shaft),
-walking through snow,
-alert expression, determined stance,
-Northern Song dynasty military attire,
-snowstorm environment,
-no modern, Western, photorealistic,
-aspect ratio 16:9
-```
-
----
-
-## 第 3 帧
-
-### 信息
-
-| 项目 | 内容 |
+| 元素 | 说明 |
 |------|------|
-| 景别 | 近景 |
-| 内容 | 林冲推开庙门 |
-| 人物 | 林冲 |
-| 动作 | 推门 |
-| 表情 | 警惕，疲惫 |
-| 对白 | - |
-| 转场 | 硬切 |
-| 时长 | 短 |
-
-### Prompt
-
-```
-Qing dynasty noble garden, ink wash painting aesthetic,
-traditional Chinese art style, soft brush strokes,
-close-up shot, slow camera push-in,
-Lin Chong pushing wooden door,
-weathered hands gripping door frame,
-alert eyes, tired expression,
-snow on shoulders and hat,
-dim interior visible through crack,
-tension in posture,
-Northern Song dynasty setting,
-no modern, Western, photorealistic,
-aspect ratio 16:9
-```
-```
+| 远山 | 夜景封闭空间 |
+| 现代建筑 | 北宋时代 |
+| 多层楼阁 | 原文为单层庙宇 |
 
 ---
 
-## 输出文件命名
+## 时代风格
 
-| 文件类型 | 命名规则 |
-|----------|----------|
-| 分镜脚本 | `{作品名}_ch{章节}_script.md` |
-| 图片 | `{作品名}_ch{章节}_frame{序号}.jpg` |
-| 提示词记录 | `{作品名}_ch{章节}_prompts.md` |
+- **建筑**：北宋民间庙宇，单层，简陋
+- **服饰**：北宋武人，斗笠、冬袍
+- **植物**：无（冬季）
+- **氛围**：悲壮、紧张、寒冷
+
+---
+
+## 人物视觉关键词
+
+### 林冲
+
+```
+林冲，中年武人，风霜面容，
+斗笠（锥形竹帽），
+厚重冬袍，提着花枪，
+警惕表情，坚毅姿态，
+北宋军教头气质
+```
+```
 
 ---
 
 ## 注意事项
 
-1. **每帧独立生成**：确保每帧可以独立生成图片
-2. **人物一致性**：使用角色库保持人物描述一致
-3. **场景连贯性**：相同场景的环境描述保持一致
-4. **节奏控制**：通过景别切换控制叙事节奏
-5. **原文引用**：对白使用原文，保持原著风格
+1. **分镜脚本必须完整**：包含所有必需项
+2. **原文对白不能简化**：必须引用原文
+3. **元素约束引用原文**：标注来源
+4. **人物关键词固定**：全篇保持一致
+5. **两套 Prompt**：中文（即梦）+ 英文（MiniMax）
