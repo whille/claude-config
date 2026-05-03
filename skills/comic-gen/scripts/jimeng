@@ -3,6 +3,7 @@
 即梦 CLI - 火山方舟文生图命令行工具
 
 支持模型: Doubao-Seedream-4.5 (推荐) / Doubao-Seedream-3.0
+支持角色一致性: 通过参考图绑定角色形象
 
 Usage:
     jimeng init              # 配置 API Key
@@ -24,6 +25,7 @@ from datetime import datetime
 CONFIG_DIR = Path.home() / ".jimeng"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 OUTPUT_DIR = CONFIG_DIR / "output"
+REFERENCE_DIR = CONFIG_DIR / "references"
 
 # 支持的模型
 MODELS = {
@@ -70,6 +72,42 @@ def check_dependencies():
         print("❌ 缺少依赖: openai")
         print("请运行: pip install openai")
         return False
+
+def load_reference_image(reference_path):
+    """加载参考图片并转为 base64"""
+    ref_path = Path(reference_path)
+    if not ref_path.exists():
+        print(f"❌ 参考图不存在: {ref_path}")
+        return None
+
+    # 检查文件类型
+    if ref_path.suffix.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
+        print(f"❌ 不支持的图片格式: {ref_path.suffix}")
+        return None
+
+    # 读取并编码
+    try:
+        with open(ref_path, 'rb') as f:
+            image_data = f.read()
+        return base64.b64encode(image_data).decode('utf-8')
+    except Exception as e:
+        print(f"❌ 读取参考图失败: {e}")
+        return None
+
+def save_reference_image(image_path, name):
+    """保存参考图到 references 目录"""
+    REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
+    src_path = Path(image_path)
+    if not src_path.exists():
+        print(f"❌ 图片不存在: {src_path}")
+        return None
+
+    # 复制到 references 目录
+    import shutil
+    dest_path = REFERENCE_DIR / f"{name}{src_path.suffix}"
+    shutil.copy(src_path, dest_path)
+    print(f"✅ 参考图已保存: {dest_path}")
+    return dest_path
 
 def cmd_init(args):
     """初始化配置"""
@@ -146,6 +184,18 @@ def cmd_generate(args):
     prefix = args.prefix or f"jimeng_{timestamp}"
     output_file = output_dir / f"{prefix}.jpg"
 
+    # 构建请求参数
+    extra_body = {"watermark": False}
+
+    # 处理参考图（角色一致性）
+    if args.reference:
+        ref_base64 = load_reference_image(args.reference)
+        if ref_base64:
+            extra_body["image"] = ref_base64
+            extra_body["strength"] = args.strength  # 参考强度
+            print(f"📐 使用参考图: {args.reference}")
+            print(f"   参考强度: {args.strength}")
+
     print(f"🎨 生成图片 (模型: {config.get('model_version', '4.5')})")
     print(f"   尺寸: {size}")
     print(f"   Prompt: {prompt[:60]}..." if len(prompt) > 60 else f"   Prompt: {prompt}")
@@ -156,7 +206,7 @@ def cmd_generate(args):
             prompt=prompt,
             size=size,
             response_format="b64_json",
-            extra_body={"watermark": False}
+            extra_body=extra_body
         )
 
         # 保存图片
@@ -165,6 +215,10 @@ def cmd_generate(args):
             f.write(image_data)
 
         print(f"✅ 图片已保存: {output_file}")
+
+        # 如果是首图，提示可以保存为参考图
+        if args.save_reference:
+            save_reference_image(output_file, args.save_reference)
 
     except Exception as e:
         print(f"❌ 生成失败: {e}")
@@ -199,6 +253,21 @@ def cmd_series(args):
     count = args.count
     mode = args.mode
 
+    # 构建请求参数
+    extra_body = {
+        "watermark": False,
+        "gen_mode": mode,  # auto / story_book / comic_strip
+    }
+
+    # 处理参考图（角色一致性）
+    if args.reference:
+        ref_base64 = load_reference_image(args.reference)
+        if ref_base64:
+            extra_body["image"] = ref_base64
+            extra_body["strength"] = args.strength
+            print(f"📐 使用参考图: {args.reference}")
+            print(f"   参考强度: {args.strength}")
+
     print(f"🎨 组图生成 (Seedream 4.5)")
     print(f"   模式: {mode}")
     print(f"   数量: {count} 张")
@@ -209,13 +278,10 @@ def cmd_series(args):
         response = client.images.generate(
             model=config["endpoint_id"],
             prompt=prompt,
-            size="1920x1080",
+            size="2560x1440",
             n=count,
             response_format="b64_json",
-            extra_body={
-                "watermark": False,
-                "gen_mode": mode,  # auto / story_book / comic_strip
-            }
+            extra_body=extra_body
         )
 
         # 保存图片
@@ -268,14 +334,27 @@ def cmd_batch(args):
 
     size = SIZES.get(args.size, args.size)
 
+    # 加载参考图（如果指定）
+    ref_base64 = None
+    if args.reference:
+        ref_base64 = load_reference_image(args.reference)
+        if ref_base64:
+            print(f"📐 使用参考图: {args.reference}")
+            print(f"   参考强度: {args.strength}")
+
     def generate_one(index, prompt):
         try:
+            extra_body = {"watermark": False}
+            if ref_base64:
+                extra_body["image"] = ref_base64
+                extra_body["strength"] = args.strength
+
             response = client.images.generate(
                 model=config["endpoint_id"],
                 prompt=prompt,
                 size=size,
                 response_format="b64_json",
-                extra_body={"watermark": False}
+                extra_body=extra_body
             )
             image_data = base64.b64decode(response.data[0].b64_json)
             output_file = output_dir / f"{args.prefix}_{index:03d}.jpg"
@@ -305,6 +384,33 @@ def cmd_batch(args):
     print(f"\n✅ 完成: {success_count}/{len(prompts)} 成功")
     print(f"   输出目录: {output_dir}")
 
+def cmd_reference(args):
+    """管理参考图"""
+    REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
+
+    if args.action == "list":
+        print("📋 已保存的参考图:")
+        for f in REFERENCE_DIR.glob("*"):
+            if f.is_file():
+                print(f"   - {f.stem}: {f}")
+
+    elif args.action == "add":
+        if not args.file:
+            print("❌ 请指定图片文件: -f <图片路径>")
+            return
+        if not args.name:
+            print("❌ 请指定参考图名称: -n <名称>")
+            return
+        save_reference_image(args.file, args.name)
+
+    elif args.action == "remove":
+        if not args.name:
+            print("❌ 请指定参考图名称: -n <名称>")
+            return
+        for f in REFERENCE_DIR.glob(f"{args.name}.*"):
+            f.unlink()
+            print(f"✅ 已删除: {f}")
+
 def cmd_config(args):
     """显示配置"""
     config = load_config()
@@ -318,19 +424,30 @@ def cmd_config(args):
     print(f"   模型版本: {config.get('model_version', '4.5')}")
     print(f"   Base URL: {config['base_url']}")
     print(f"   输出目录: {config.get('output_dir', OUTPUT_DIR)}")
+    print(f"   参考图目录: {REFERENCE_DIR}")
 
 def main():
     parser = argparse.ArgumentParser(
-        description="即梦 CLI - 火山方舟文生图工具 (支持 Doubao-Seedream-4.5)",
+        description="即梦 CLI - 火山方舟文生图工具 (支持 Doubao-Seedream-4.5，角色一致性)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
   jimeng init                          # 初始化配置
   jimeng generate "一只可爱的猫咪"       # 生成图片
   jimeng generate "林黛玉" -s 2k        # 2K 分辨率
-  jimeng series "红楼梦场景" -c 5       # 组图生成 (4.5 特有)
-  jimeng batch prompts.txt             # 批量生成
-  jimeng config                        # 显示配置
+
+  # 角色一致性（使用参考图）
+  jimeng generate "贾宝玉在怡红院" -r baoyu.jpg -t 0.8
+  jimeng batch prompts.txt -r baoyu.jpg -t 0.7 -p hongloumeng
+
+  # 组图生成（4.5 特有）
+  jimeng series "红楼梦场景" -c 5 -m comic_strip
+  jimeng series "林黛玉葬花" -c 10 -r daiyu.jpg -t 0.8
+
+  # 参考图管理
+  jimeng reference list                # 列出已保存的参考图
+  jimeng reference add -f image.jpg -n baoyu  # 保存参考图
+  jimeng reference remove -n baoyu     # 删除参考图
 
 支持的尺寸:
   720p, 1080p, 2k, 4k, 1:1, 16:9, 9:16, 3:4, 4:3
@@ -340,6 +457,11 @@ Seedream 4.5 特性:
   - 组图生成 (一次最多 15 张)
   - 多图融合 (最多 8 张参考图)
   - 精准保持原图风格
+  - 角色一致性绑定 (-r 参数)
+
+参数说明:
+  -r, --reference  参考图路径（用于角色一致性）
+  -t, --strength   参考强度 0.0-1.0（默认: 0.8，值越大越接近参考图）
 """
     )
 
@@ -353,6 +475,10 @@ Seedream 4.5 特性:
     parser_gen.add_argument("prompt", help="图片描述")
     parser_gen.add_argument("-s", "--size", default="2k", help="图片尺寸 (默认: 2k)")
     parser_gen.add_argument("-p", "--prefix", help="输出文件名前缀")
+    parser_gen.add_argument("-r", "--reference", help="参考图路径（角色一致性）")
+    parser_gen.add_argument("-t", "--strength", type=float, default=0.8,
+                           help="参考强度 0.0-1.0 (默认: 0.8)")
+    parser_gen.add_argument("--save-reference", metavar="NAME", help="保存为参考图")
 
     # series (Seedream 4.5)
     parser_series = subparsers.add_parser("series", help="组图生成 (4.5 特有)")
@@ -361,6 +487,9 @@ Seedream 4.5 特性:
     parser_series.add_argument("-m", "--mode", default="auto", choices=["auto", "story_book", "comic_strip"],
                                help="生成模式: auto/story_book/comic_strip")
     parser_series.add_argument("-p", "--prefix", help="输出文件名前缀")
+    parser_series.add_argument("-r", "--reference", help="参考图路径（角色一致性）")
+    parser_series.add_argument("-t", "--strength", type=float, default=0.8,
+                               help="参考强度 0.0-1.0 (默认: 0.8)")
 
     # batch
     parser_batch = subparsers.add_parser("batch", help="批量生成")
@@ -368,6 +497,15 @@ Seedream 4.5 特性:
     parser_batch.add_argument("-p", "--prefix", default="batch", help="输出文件名前缀")
     parser_batch.add_argument("-s", "--size", default="2k", help="图片尺寸")
     parser_batch.add_argument("-w", "--workers", type=int, default=3, help="并发数 (默认: 3)")
+    parser_batch.add_argument("-r", "--reference", help="参考图路径（角色一致性）")
+    parser_batch.add_argument("-t", "--strength", type=float, default=0.8,
+                               help="参考强度 0.0-1.0 (默认: 0.8)")
+
+    # reference
+    parser_ref = subparsers.add_parser("reference", help="管理参考图")
+    parser_ref.add_argument("action", choices=["list", "add", "remove"], help="操作: list/add/remove")
+    parser_ref.add_argument("-f", "--file", help="图片文件路径")
+    parser_ref.add_argument("-n", "--name", help="参考图名称")
 
     # config
     parser_config = subparsers.add_parser("config", help="显示配置")
@@ -382,6 +520,8 @@ Seedream 4.5 特性:
         cmd_series(args)
     elif args.command == "batch":
         cmd_batch(args)
+    elif args.command == "reference":
+        cmd_reference(args)
     elif args.command == "config":
         cmd_config(args)
     else:
