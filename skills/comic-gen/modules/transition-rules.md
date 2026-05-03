@@ -4,6 +4,24 @@
 
 ---
 
+## 运镜控制（新增）
+
+> 详见 `camera-movement.md`
+
+每帧 Prompt 应包含运镜词，增强动态感：
+
+| 运镜 | 英文 Prompt | 适用场景 |
+|------|-------------|----------|
+| 推镜头 | `Slow camera push-in` | 情绪聚焦 |
+| 拉镜头 | `Camera pull-back` | 环境交代 |
+| 跟随镜头 | `Tracking shot` | 行走、追逐 |
+| 静态镜头 | `Static shot` | 对话、静谧 |
+| 左/右摇 | `Pan left / Pan right` | 环境展示 |
+
+**组合示例**：`medium shot, slow camera push-in`
+
+---
+
 ## 标准序列
 
 ### 三帧序列（基础）

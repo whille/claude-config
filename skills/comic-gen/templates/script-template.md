@@ -42,14 +42,15 @@
 ### Prompt
 
 ```
-{景别英文},
+{风格种子词},
+{景别}, {运镜},
 {环境描述},
 {人物描述},
 {动作描述},
 {表情描述},
 {时代背景},
 {氛围关键词},
-{负面约束}
+no {负面提示词}
 ```
 
 ---
@@ -93,7 +94,9 @@
 ### Prompt
 
 ```
-wide shot,
+Qing dynasty noble garden, ink wash painting aesthetic,
+traditional Chinese art style, soft brush strokes,
+wide shot, static shot,
 Northern Song dynasty,
 winter night, heavy snowfall,
 small dilapidated shrine in snowstorm,
@@ -101,7 +104,7 @@ weathered wooden temple,
 thick snow covering everything,
 howling wind, swirling snowflakes,
 desolate atmosphere,
-traditional Chinese ink painting style,
+no modern, Western, photorealistic,
 aspect ratio 16:9
 ```
 
@@ -125,7 +128,9 @@ aspect ratio 16:9
 ### Prompt
 
 ```
-medium shot,
+Qing dynasty noble garden, ink wash painting aesthetic,
+traditional Chinese art style, soft brush strokes,
+medium shot, tracking shot,
 Lin Chong from Water Margin,
 middle-aged man, weathered face,
 cone-shaped douli (bamboo hat),
@@ -135,7 +140,7 @@ walking through snow,
 alert expression, determined stance,
 Northern Song dynasty military attire,
 snowstorm environment,
-traditional Chinese style,
+no modern, Western, photorealistic,
 aspect ratio 16:9
 ```
 
@@ -159,7 +164,9 @@ aspect ratio 16:9
 ### Prompt
 
 ```
-close-up shot,
+Qing dynasty noble garden, ink wash painting aesthetic,
+traditional Chinese art style, soft brush strokes,
+close-up shot, slow camera push-in,
 Lin Chong pushing wooden door,
 weathered hands gripping door frame,
 alert eyes, tired expression,
@@ -167,7 +174,7 @@ snow on shoulders and hat,
 dim interior visible through crack,
 tension in posture,
 Northern Song dynasty setting,
-traditional Chinese style,
+no modern, Western, photorealistic,
 aspect ratio 16:9
 ```
 ```

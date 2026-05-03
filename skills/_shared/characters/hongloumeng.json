@@ -4,28 +4,63 @@
     "clothing": "淡雅素净，偏爱青色白色",
     "temperament": "病态美，忧郁气质",
     "keywords": "Lin Daiyu, delicate beauty, melancholic expression, slender figure, pale complexion, greenish-white robes, bamboo surroundings, poetic aura",
-    "scenes": ["潇湘馆", "葬花", "抚琴"]
+    "scenes": ["潇湘馆", "葬花", "抚琴"],
+    "base_prompt": "Lin Daiyu, delicate beauty, slender figure, pale complexion, thin curved eyebrows, melancholic eyes, wearing light greenish-white robes, bamboo surroundings, poetic aura, traditional Chinese beauty, Qing dynasty style",
+    "anchor_words": ["delicate", "pale", "melancholic", "slender", "bamboo"],
+    "forbidden": ["no smiling", "no bright colors", "no heavy makeup", "no western style"],
+    "variants": {
+      "悲伤": "tears in eyes, downcast gaze",
+      "沉思": "distant gaze, hand touching chin",
+      "病态": "coughing, leaning on support",
+      "惊喜": "eyes lighting up, slight smile"
+    }
   },
   "贾宝玉": {
     "appearance": "面如中秋之月，色如春晓之花",
     "clothing": "富贵华丽，红色为主",
-    "temperament": "风流倜傥，温润如玉",
+    "temperament": "风流倜傥，，温润如玉",
     "keywords": "Jia Baoyu, young nobleman, handsome face, red robes, jade ornament at waist, gentle expression, aristocratic bearing",
-    "scenes": ["怡红院", "大观园", "诗社"]
+    "scenes": ["怡红院", "大观园", "诗社"],
+    "base_prompt": "Jia Baoyu, young nobleman, handsome face, red robes, jade ornament at waist, gentle expression, aristocratic bearing, about 15 years old, traditional Chinese beauty, Qing dynasty style",
+    "anchor_words": ["young nobleman", "red robes", "jade ornament", "handsome", "gentle"],
+    "forbidden": ["no western clothing", "no modern elements", "no beard", "no stern expression"],
+    "variants": {
+      "惊讶": "eyes wide, mouth slightly open",
+      "沉思": "brow furrowed, hand on chin",
+      "欢喜": "slight smile, bright eyes",
+      "羞愧": "head lowered, blushing"
+    }
   },
   "薛宝钗": {
     "appearance": "脸若银盆，眼似水杏",
     "clothing": "端庄大方，金色为主",
     "temperament": "贤淑端庄，温婉大气",
     "keywords": "Xue Baochai, elegant lady, round face, gentle smile, gold ornaments, dignified posture, refined manner",
-    "scenes": ["蘅芜苑", "扑蝶", "赏雪"]
+    "scenes": ["蘅芜苑", "扑蝶", "赏雪"],
+    "base_prompt": "Xue Baochai, elegant lady, round face, gentle smile, gold ornaments, dignified posture, refined manner, wearing elegant gold-trimmed robes, traditional Chinese beauty, Qing dynasty style",
+    "anchor_words": ["elegant", "gold ornaments", "dignified", "gentle smile", "round face"],
+    "forbidden": ["no western style", "no casual attire", "no harsh expression"],
+    "variants": {
+      "沉稳": "calm expression, composed posture",
+      "关切": "warm gaze, slight smile",
+      "矜持": "reserved expression, graceful stance"
+    }
   },
   "王熙凤": {
     "appearance": "一双丹凤三角眼，两弯柳叶吊梢眉",
     "clothing": "华贵艳丽，色彩浓烈",
     "temperament": "精明强干，泼辣威严",
     "keywords": "Wang Xifeng, sharp-eyed beauty, phoenix eyes, elaborate headdress, luxurious robes, commanding presence, authoritative stance",
-    "scenes": ["荣国府", "理家", "协理"]
+    "scenes": ["荣国府", "理家", "协理"],
+    "base_prompt": "Wang Xifeng, sharp-eyed beauty, phoenix eyes, elaborate headdress, luxurious robes, commanding presence, authoritative stance, traditional Chinese beauty, Qing dynasty style",
+    "anchor_words": ["phoenix eyes", "elaborate headdress", "luxurious robes", "commanding", "sharp-eyed"],
+    "forbidden": ["no simple clothing", "no shy expression", "no western style"],
+    "variants": {
+      "威严": "stern gaze, upright posture",
+      "狡黠": "slight smirk, narrowed eyes",
+      "愤怒": "glaring, pointing finger",
+      "得意": "confident smile, raised chin"
+    }
   },
   "贾母": {
     "appearance": "鹤发童颜，精神矍铄",
