@@ -1,0 +1,86 @@
+{
+  "林黛玉": {
+    "appearance": "两弯似蹙非蹙罥烟眉，一双似喜非喜含情目",
+    "clothing": "淡雅素净，偏爱青色白色",
+    "temperament": "病态美，忧郁气质",
+    "keywords": "Lin Daiyu, delicate beauty, melancholic expression, slender figure, pale complexion, greenish-white robes, bamboo surroundings, poetic aura",
+    "scenes": ["潇湘馆", "葬花", "抚琴"]
+  },
+  "贾宝玉": {
+    "appearance": "面如中秋之月，色如春晓之花",
+    "clothing": "富贵华丽，红色为主",
+    "temperament": "风流倜傥，温润如玉",
+    "keywords": "Jia Baoyu, young nobleman, handsome face, red robes, jade ornament at waist, gentle expression, aristocratic bearing",
+    "scenes": ["怡红院", "大观园", "诗社"]
+  },
+  "薛宝钗": {
+    "appearance": "脸若银盆，眼似水杏",
+    "clothing": "端庄大方，金色为主",
+    "temperament": "贤淑端庄，温婉大气",
+    "keywords": "Xue Baochai, elegant lady, round face, gentle smile, gold ornaments, dignified posture, refined manner",
+    "scenes": ["蘅芜苑", "扑蝶", "赏雪"]
+  },
+  "王熙凤": {
+    "appearance": "一双丹凤三角眼，两弯柳叶吊梢眉",
+    "clothing": "华贵艳丽，色彩浓烈",
+    "temperament": "精明强干，泼辣威严",
+    "keywords": "Wang Xifeng, sharp-eyed beauty, phoenix eyes, elaborate headdress, luxurious robes, commanding presence, authoritative stance",
+    "scenes": ["荣国府", "理家", "协理"]
+  },
+  "贾母": {
+    "appearance": "鹤发童颜，精神矍铄",
+    "clothing": "华丽尊贵，紫色为主",
+    "temperament": "慈祥威严，享乐主义",
+    "keywords": "Grandmother Jia, elderly matriarch, white hair, purple robes, jade ornaments, benevolent expression, seated on throne",
+    "scenes": ["荣庆堂", "赏灯", "宴饮"]
+  },
+  "贾政": {
+    "appearance": "方脸阔口，严肃面容",
+    "clothing": "官服，深色庄重",
+    "temperament": "严厉，庄重",
+    "keywords": "Jia Zheng, middle-aged official, stern face, official robes, formal hat, serious expression, scholar-official bearing",
+    "scenes": ["书房", "训子", "接旨"]
+  },
+  "妙玉": {
+    "appearance": "气质如兰，清高孤傲",
+    "clothing": "道袍，素色为主",
+    "temperament": "清高孤傲，洁癖",
+    "keywords": "Miao Yu, Buddhist nun, serene face, simple robes, meditation posture, temple setting, tea ceremony",
+    "scenes": ["栊翠庵", "品茶", "打坐"]
+  },
+  "史湘云": {
+    "appearance": "英气逼人，活泼开朗",
+    "clothing": "中性装扮，色彩明快",
+    "temperament": "豪爽活泼，天真烂漫",
+    "keywords": "Shi Xiangyun, lively young lady, bright smile, colorful robes, energetic pose, drunk on peony",
+    "scenes": ["醉卧芍药", "诗社", "烤鹿肉"]
+  },
+  "探春": {
+    "appearance": "俊眼修眉，顾盼神飞",
+    "clothing": "雅致大方，玫瑰色为主",
+    "temperament": "精明能干，有魄力",
+    "keywords": "Jia Tanchun, intelligent lady, sharp eyes, rose-colored robes, confident stance, managing household",
+    "scenes": ["秋爽斋", "理家", "放风筝"]
+  },
+  "迎春": {
+    "appearance": "温婉柔弱，眉目和顺",
+    "clothing": "淡雅素净",
+    "temperament": "懦弱老实，逆来顺受",
+    "keywords": "Jia Yingchun, gentle lady, soft expression, pale robes, passive posture, reading scriptures",
+    "scenes": ["紫菱洲", "下棋", "受欺负"]
+  },
+  "惜春": {
+    "appearance": "年少清秀",
+    "clothing": "素色简洁",
+    "temperament": "冷淡孤僻，向往佛门",
+    "keywords": "Jia Xichun, young girl, reserved expression, simple robes, painting, temple imagery",
+    "scenes": ["藕香榭", "绘画", "出家"]
+  },
+  "李纨": {
+    "appearance": "素面朝天，淡妆朴素",
+    "clothing": "素色寡妇装",
+    "temperament": "贞静守节，教子有方",
+    "keywords": "Li Wan, young widow, plain face, white robes, modest demeanor, teaching son, rural setting",
+    "scenes": ["稻香村", "教子", "诗社评阅"]
+  }
+}

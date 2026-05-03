@@ -1,0 +1,21 @@
+{
+  "_template": {
+    "name": "角色名",
+    "appearance": "外貌描写",
+    "clothing": "服饰特点",
+    "temperament": "性格气质",
+    "keywords": "英文视觉关键词，用于 Prompt",
+    "scenes": ["典型场景1", "典型场景2"]
+  },
+  "_usage": {
+    "description": "角色库模板，用于小说转漫画时保持角色一致性",
+    "fields": {
+      "name": "角色中文名",
+      "appearance": "原文中的外貌描写",
+      "clothing": "服饰颜色、风格",
+      "temperament": "性格关键词",
+      "keywords": "英文 Prompt 关键词，包含外貌、服饰、姿态",
+      "scenes": "该角色的典型场景"
+    }
+  }
+}

@@ -120,20 +120,22 @@ last_updated: 2026-04-26
 
 生成图片前，必须确认视觉元素的正确性。
 
-#### 缓存机制
+#### 公共模块（_shared）
 
-**优先读取缓存，避免重复查证**：
+**引用公共模块目录**：
 
 ```
-~/.claude/skills/scene-img/
-├── references/           # 通用历史资料
-│   ├── dynasty-costume.md
-│   ├── dynasty-architecture.md
-│   ├── imagery-mapping.md    # 【新增】古文意象映射
-│   └── scene-templates.md     # 【新增】场景类型模板
-└── cache/                # 项目专项缓存
-    └── {项目名}/
-        └── visual-reference.md
+~/.claude/skills/_shared/
+├── dynasty/
+│   ├── architecture.md   # 朝代建筑风格
+│   ├── costume.md        # 朝代服饰特点
+│   └── props.md          # 器物参考
+├── imagery/
+│   └── mapping.md        # 古文意象→英文视觉术语
+├── scene/
+│   └── templates.md      # 场景类型模板
+└── characters/
+    └── {作品}.json       # 角色库（供 comic-gen 使用）
 ```
 
 **执行流程**：
@@ -142,11 +144,11 @@ last_updated: 2026-04-26
    - 存在 → 直接使用缓存内容
    - 不存在 → 执行查证流程 → 保存到缓存
 
-2. **通用资料**：
-   - `Read references/dynasty-costume.md`（朝代服饰）
-   - `Read references/dynasty-architecture.md`（朝代建筑）
-   - `Read references/imagery-mapping.md`（古文意象映射）
-   - `Read references/scene-templates.md`（场景类型模板）
+2. **读取公共模块**：
+   - `Read _shared/dynasty/architecture.md`（朝代建筑）
+   - `Read _shared/dynasty/costume.md`（朝代服饰）
+   - `Read _shared/imagery/mapping.md`（古文意象映射）
+   - `Read _shared/scene/templates.md`（场景类型模板）
 
 3. **首次查证后保存**：
    ```markdown
@@ -157,7 +159,7 @@ last_updated: 2026-04-26
 
 #### 【新增】古文意象→视觉映射
 
-阅读 `references/imagery-mapping.md`，查找对应意象：
+阅读 `_shared/imagery/mapping.md`，查找对应意象：
 
 | 古文意象 | 视觉关键词 | 常见误解 |
 |----------|-----------|----------|
@@ -172,7 +174,7 @@ last_updated: 2026-04-26
 
 #### 【新增】场景类型模板
 
-阅读 `references/scene-templates.md`，匹配场景类型：
+阅读 `_shared/scene/templates.md`，匹配场景类型：
 
 | 场景类型 | 氛围关键词 | 必须元素 | 禁止元素 |
 |----------|-----------|----------|----------|
@@ -791,12 +793,20 @@ Claude 执行:
 ```
 ~/.claude/skills/scene-img/
 ├── SKILL.md
-├── references/           # 通用历史资料
-│   ├── dynasty-costume.md
-│   ├── dynasty-architecture.md
-│   ├── imagery-mapping.md    # 【新增】古文意象映射
-│   └── scene-templates.md     # 【新增】场景类型模板
 └── cache/                # 项目专项缓存
     └── {项目名}/
         └── visual-reference.md
+
+# 公共模块（与其他 skill 共享）
+~/.claude/skills/_shared/
+├── dynasty/
+│   ├── architecture.md   # 朝代建筑风格
+│   ├── costume.md        # 朝代服饰特点
+│   └── props.md          # 器物参考
+├── imagery/
+│   └── mapping.md        # 古文意象映射
+├── scene/
+│   └── templates.md      # 场景类型模板
+└── characters/
+    └── {作品}.json       # 角色库
 ```
