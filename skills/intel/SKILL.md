@@ -1,7 +1,7 @@
 ---
 name: intel
-version: 1.2.0
-description: 信息源适配层。AI预判源选择，扫描多源信息（B站/GitHub/RSS），自动去重、评分、筛选。加 --deep 深度提取字幕/代码分析。
+version: 1.3.0
+description: 信息源适配层。AI预判源选择，扫描多源信息（B站/GitHub/RSS），自动去重、评分、筛选。加 --deep 深度提取字幕/代码分析，B站自动获取AI字幕。
 user-invocable: true
 argument-hint: "<主题> [--deep]"
 triggers:
@@ -10,7 +10,7 @@ triggers:
   - "intel"
   - "信息源监控"
   - "持续跟踪"
-last_updated: 2026-04-20
+last_updated: 2026-05-04
 ---
 
 # Intel
@@ -74,7 +74,17 @@ last_updated: 2026-04-20
 | 参数 | 说明 |
 |------|------|
 | `<主题>` | 快速扫描，生成报告筛选价值，Top 5 高价值内容 |
-| `--deep` | 深度提取：B站抓字幕、GitHub克隆分析、Web提全文 |
+| `--deep` | 深度提取：B站自动获取字幕（普通/AI）、GitHub克隆分析、Web提全文 |
+
+### --deep 对 B站的处理
+
+1. 搜索关键词，计算可信度，筛选 Top N 视频
+2. 对每个视频尝试获取字幕：
+   - 优先：UP主上传的普通字幕
+   - 其次：B站 AI 自动生成的字幕
+   - 最后：使用视频简介
+3. 基于字幕内容生成洞察摘要
+4. 汇总生成深度报告
 
 ---
 
@@ -283,12 +293,53 @@ for v in videos:
 # 需要登录态
 credential = load_credential("~/.claude/bilibili-credential.json")
 
-# 获取字幕
-subtitle = await video.get_subtitle(cid, credential)
+# 优先级：普通字幕 > AI字幕 > 简介
+subtitle = await get_subtitle_with_fallback(bvid, credential)
 
 # 输出 SRT 格式
 save_srt(subtitle, "subtitles/xxx.srt")
 ```
+
+### AI 字幕获取
+
+**原理**：B站部分视频有 AI 自动生成的字幕，存储在 CDN 上。
+
+**获取流程**：
+
+```
+1. 调用 subtitle/web/view API
+   https://api.bilibili.com/x/v2/subtitle/web/view?oid={cid}&pid={aid}&...
+   返回 Protobuf 格式
+     ↓
+2. 解析 Protobuf 提取 auth_key
+   auth_key 格式: timestamp-{hash1}-0-{hash2}
+     ↓
+3. 构造字幕 URL
+   https://aisubtitle.hdslb.com/bfs/ai_subtitle/prod/{aid}{cid}{hash}?auth_key={auth_key}
+     ↓
+4. 下载 JSON 字幕
+   {"body": [{"from": 0.0, "content": "..."}, ...]}
+```
+
+**代码示例**：
+
+```python
+# 使用 bilibili-analyzer 的脚本
+from bilibili_ai_subtitle import fetch_bilibili_ai_subtitle, load_credential_from_file
+
+async def get_ai_subtitle(bvid: str) -> str:
+    credential = load_credential_from_file()
+    subtitles = await fetch_bilibili_ai_subtitle(bvid, credential)
+
+    # 转换为带时间戳的文本
+    lines = [f"[{s.time:.1f}s] {s.content}" for s in subtitles]
+    return "\n".join(lines)
+```
+
+**注意事项**：
+- auth_key 有效期约 60 秒
+- 并非所有视频都有 AI 字幕
+- 需要有效的 SESSDATA 登录态
 
 **凭证文件**：`~/.claude/bilibili-credential.json`
 
@@ -398,6 +449,63 @@ fetched: YYYY-MM-DD
 
 ## 代码架构洞察（仅GitHub）
 ...
+```
+
+### B站视频深度报告格式
+
+```markdown
+# {主题} B站深度扫描报告
+
+> 扫描时间：YYYY-MM-DD
+> 关键词：XXX
+> Top N 视频：N 个
+> 字幕获取成功率：N/N
+
+## 视频洞察
+
+### 1. [视频标题](URL)
+
+| 属性 | 值 |
+|------|---|
+| UP主 | xxx |
+| 可信度 | XX (A级) |
+| 播放量 | xxx |
+| 时长 | xx分钟 |
+| 字幕来源 | AI字幕/普通字幕/简介 |
+
+**核心观点**：
+- 观点1
+- 观点2
+
+**技术要点**：
+- 要点1
+- 要点2
+
+**字幕摘要**（前500字）：
+> 字幕内容摘要...
+
+---
+
+### 2. [视频标题](URL)
+...
+
+## 综合洞察
+
+### 主要发现
+- 发现1
+- 发现2
+
+### 共性观点
+- 观点1
+- 观点2
+
+### 推荐深入
+- 视频1：理由
+- 视频2：理由
+
+## 附录：完整字幕
+
+字幕文件保存在：`reports/subtitles/{主题}-{日期}/`
 ```
 
 ---

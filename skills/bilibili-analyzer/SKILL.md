@@ -1,7 +1,7 @@
 ---
 name: bilibili-analyzer
-version: 1.2.0
-description: 分析B站视频，提取关键信息并生成结构化报告。支持关键词搜索、UP主可信度评估、AI字幕获取、AI摘要。
+version: 1.3.0
+description: 分析B站视频，提取关键信息并生成结构化报告。支持关键词搜索、UP主可信度评估、AI字幕获取、AI摘要。与 intel --deep 集成。
 user-invocable: true
 argument-hint: "<关键词> 或 --uploader <UID> 或 <BV号>"
 triggers:
@@ -370,6 +370,42 @@ def calculate_credibility(user_info, relation_info, up_stat):
 ```bash
 pip install bilibili-api-python httpx
 ```
+
+---
+
+## 与 intel --deep 集成
+
+当使用 `intel --deep` 扫描 B站时，会自动调用本 skill：
+
+```
+/intel 主题 --deep
+    │
+    ├─ 调用 bilibili-analyzer 搜索
+    │     ↓
+    │   计算可信度，筛选 top N 视频
+    │     ↓
+    ├─ 对每个 top N 视频：
+    │     │
+    │     ├─ 尝试获取普通字幕（UP主上传）
+    │     │     ↓
+    │     ├─ 无字幕？调用 scripts/bilibili_ai_subtitle.py 获取 AI 字幕
+    │     │     ↓
+    │     ├─ 保存字幕到 reports/subtitles/
+    │     │
+    │     └─ 生成单视频洞察摘要
+    │           ↓
+    └─ 汇总生成深度报告
+          ↓
+      reports/{主题}-{日期}-deep.md
+```
+
+### 字幕获取优先级
+
+| 优先级 | 类型 | 来源 | 方法 |
+|--------|------|------|------|
+| 1 | 普通字幕 | UP主上传 | `video.get_subtitle()` |
+| 2 | AI 字幕 | B站自动生成 | `aisubtitle.hdslb.com` |
+| 3 | 简介 | 视频描述 | 字幕都无时使用 |
 
 ---
 
