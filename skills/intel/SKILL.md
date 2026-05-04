@@ -82,8 +82,8 @@ last_updated: 2026-05-04
 2. 对每个视频尝试获取字幕：
    - 优先：UP主上传的普通字幕
    - 其次：B站 AI 自动生成的字幕
-   - 最后：使用视频简介
-3. 基于字幕内容生成洞察摘要
+   - 无字幕：跳过深度分析，仅保留基本信息
+3. **基于字幕内容生成洞察摘要**（无字幕不生成）
 4. 汇总生成深度报告
 
 ---
@@ -224,7 +224,9 @@ wiki/raw/
 |--------|------|------|------|
 | 1 | 普通字幕 | UP主上传 | `video.get_subtitle()` |
 | 2 | AI 字幕 | B站自动生成 | `aisubtitle.hdslb.com` |
-| 3 | 简介 | 视频描述 | 字幕都无时使用 |
+| 3 | 无字幕 | - | 跳过深度分析，仅保留基本信息 |
+
+**⚠️ 重要原则**：无字幕视频不生成深度洞察
 
 **AI 字幕获取代码**：
 
@@ -235,7 +237,11 @@ sys.path.insert(0, f"{CLAUDE_SKILL_DIR}/bilibili-analyzer/scripts")
 from bilibili_ai_subtitle import fetch_bilibili_ai_subtitle, BilibiliCredential
 
 async def get_bilibili_subtitle(bvid: str) -> str:
-    """获取 B站视频字幕（普通字幕或 AI 字幕）"""
+    """获取 B站视频字幕（普通字幕或 AI 字幕）
+
+    Returns:
+        字幕文本，无字幕返回None
+    """
 
     credential = BilibiliCredential(
         sessdata=os.environ.get("BILIBILI_SESSDATA"),
@@ -255,8 +261,9 @@ async def get_bilibili_subtitle(bvid: str) -> str:
     except:
         pass
 
-    # 方法3: 返回简介
-    return await get_video_description(bvid)
+    # 无字幕，返回None（不使用简介替代）
+    print(f"⚠️ {bvid} 无字幕，跳过深度分析")
+    return None
 ```
 
 ---

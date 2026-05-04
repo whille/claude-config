@@ -1,6 +1,6 @@
 ---
 name: bilibili-analyzer
-version: 1.3.0
+version: 1.4.1
 description: 分析B站视频，提取关键信息并生成结构化报告。支持关键词搜索、UP主可信度评估、AI字幕获取、AI摘要。与 intel --deep 集成。
 user-invocable: true
 argument-hint: "<关键词> 或 --uploader <UID> 或 <BV号>"
@@ -257,10 +257,26 @@ def calculate_credibility(user_info, relation_info, up_stat):
 
 ## AI 总结模板
 
-执行分析时，使用以下 Prompt：
+**⚠️ 重要原则：必须基于字幕生成总结，无字幕不生成深度洞察**
+
+执行分析时，先检查字幕可用性：
+
+```python
+# 检查字幕可用性
+if not subtitle_text or len(subtitle_text) < 100:
+    print("⚠️ 该视频无字幕，无法生成深度总结")
+    print("建议：")
+    print("1. 使用 Whisper 本地转录音频")
+    print("2. 直接观看视频")
+    # 仅输出基本信息，不生成洞察
+    output_basic_info_only()
+    return
+```
+
+有字幕时使用以下 Prompt：
 
 ```
-分析以下B站视频，生成结构化总结：
+基于以下B站视频【字幕内容】，生成结构化总结：
 
 ## 视频信息
 - 标题：{title}
@@ -269,24 +285,61 @@ def calculate_credibility(user_info, relation_info, up_stat):
 - 播放量：{view}
 - 时长：{duration}秒
 
-## 内容
-{subtitle_or_desc}
+## 字幕内容（完整）
+{subtitle_text}
 
-请输出：
+请严格基于字幕内容输出：
 
 ### 1. 一句话摘要（20字内）
+从字幕核心内容提炼
 
 ### 2. 核心观点（3-5条）
+从字幕中提取，必须标注时间戳
+格式：观点 [时间戳]
 
-### 3. 技术价值判断
+### 3. 关键知识点
+- 知识点1 [时间戳]
+- 知识点2 [时间戳]
+（从字幕原文提取，保留上下文）
+
+### 4. 技术价值判断
 - 技术相关性：高/中/低
 - 原创性：高/中/低
 - 实用性：高/中/低
 
-### 4. 是否值得深入（是/否）
-理由：...
+### 5. 是否值得深入（是/否）
+理由：基于字幕内容判断
 
-### 5. 核心关键词
+### 6. 核心关键词
+从字幕中提取的关键术语
+```
+
+> **公式格式**：使用 `$...$`（行内）和 `$$...$$`（块级）LaTeX 格式，详见全局配置 CLAUDE.md
+
+---
+
+**无字幕视频处理**：
+
+```markdown
+# 视频基本信息
+
+| 属性 | 值 |
+|------|---|
+| 标题 | {title} |
+| UP主 | {author} |
+| 可信度 | {score} ({level}) |
+| 播放量 | {view} |
+| 时长 | {duration} |
+
+⚠️ **该视频无字幕，无法生成深度总结**
+
+建议获取字幕的方法：
+1. 使用 Whisper 本地转录：`whisper audio.mp3 --model medium`
+2. 使用 Playwright 监控浏览器网络请求
+3. 直接观看视频
+
+简介内容：
+> {description}
 ```
 
 ---
@@ -405,18 +458,23 @@ pip install bilibili-api-python httpx
 |--------|------|------|------|
 | 1 | 普通字幕 | UP主上传 | `video.get_subtitle()` |
 | 2 | AI 字幕 | B站自动生成 | `aisubtitle.hdslb.com` |
-| 3 | 简介 | 视频描述 | 字幕都无时使用 |
+| 3 | 无字幕 | - | 仅输出基本信息，不生成洞察 |
+
+**⚠️ 不使用简介替代字幕生成深度总结**
 
 ---
 
 ## 注意事项
 
 1. **API 频率**：控制并发数，避免限流
-2. **无字幕视频**：使用简介替代
+2. **⚠️ 无字幕不总结**：无字幕视频仅输出基本信息，不生成深度洞察
 3. **AI 字幕**：并非所有视频都有，auth_key 有效期约 60 秒
 4. **隐私设置**：部分 UP 主信息可能获取失败
 5. **已删除视频**：跳过处理
 6. **登录态失效**：定期更新 Cookie 中的 SESSDATA
+7. **字幕优先级**：普通字幕 > AI字幕 > 无字幕（不使用简介替代）
+
+last_updated: 2026-05-04
 
 ---
 
