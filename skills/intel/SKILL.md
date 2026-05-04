@@ -178,6 +178,77 @@ wiki/raw/
 （标准化输出，可直接进入 llm-wiki）
 ```
 
+### B站深度扫描流程
+
+```
+/intel 主题 --deep
+    │
+    ├─ 调用 bilibili-analyzer 搜索
+    │     ↓
+    │   计算可信度，筛选 top N 视频
+    │     ↓
+    ├─ 对每个 top N 视频：
+    │     │
+    │     ├─ 尝试获取普通字幕（UP主上传）
+    │     │     ↓
+    │     ├─ 无字幕？尝试获取 AI 字幕
+    │     │     ↓
+    │     │   调用 subtitle/web/view API
+    │     │     ↓
+    │     │   解析 Protobuf 提取 auth_key
+    │     │     ↓
+    │     │   构造字幕 URL 下载
+    │     │     ↓
+    │     ├─ 保存字幕到 reports/subtitles/
+    │     │
+    │     └─ 生成单视频洞察摘要
+    │           ↓
+    └─ 汇总生成深度报告
+          ↓
+      reports/{主题}-{日期}-deep.md
+```
+
+**字幕获取优先级**：
+
+| 优先级 | 类型 | 来源 | 说明 |
+|--------|------|------|------|
+| 1 | 普通字幕 | UP主上传 | `video.get_subtitle()` |
+| 2 | AI 字幕 | B站自动生成 | `aisubtitle.hdslb.com` |
+| 3 | 简介 | 视频描述 | 字幕都无时使用 |
+
+**AI 字幕获取代码**：
+
+```python
+# 使用 bilibili-analyzer 提供的脚本
+import sys
+sys.path.insert(0, f"{CLAUDE_SKILL_DIR}/bilibili-analyzer/scripts")
+from bilibili_ai_subtitle import fetch_bilibili_ai_subtitle, BilibiliCredential
+
+async def get_bilibili_subtitle(bvid: str) -> str:
+    """获取 B站视频字幕（普通字幕或 AI 字幕）"""
+
+    credential = BilibiliCredential(
+        sessdata=os.environ.get("BILIBILI_SESSDATA"),
+        bili_jct=os.environ.get("BILIBILI_BILI_JCT"),
+        buvid3=os.environ.get("BILIBILI_BUVID3")
+    )
+
+    # 方法1: 尝试普通字幕
+    subtitle = await get_normal_subtitle(bvid)
+    if subtitle:
+        return subtitle
+
+    # 方法2: 尝试 AI 字幕
+    try:
+        subtitles = await fetch_bilibili_ai_subtitle(bvid, credential, verbose=False)
+        return "\n".join([f"[{s.time:.1f}s] {s.content}" for s in subtitles])
+    except:
+        pass
+
+    # 方法3: 返回简介
+    return await get_video_description(bvid)
+```
+
 ---
 
 ## 信息源适配器
