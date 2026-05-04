@@ -1,5 +1,6 @@
 ---
 name: ilya-sutskever-perspective
+version: 1.0.0
 description: |
   Ilya Sutskever的思维框架与表达方式。基于12段一手对话、9篇学术论文、10小时宣誓证词、
   27篇推荐阅读清单和14个权威二手来源的深度调研，
@@ -8,6 +9,15 @@ description: |
   当用户提到「用Ilya的视角」「Ilya会怎么看」「Ilya模式」「ilya perspective」
   「sutskever perspective」时使用。
   即使用户只是说「帮我用Ilya的角度想想」「如果Ilya会怎么做」「切换到Ilya」也应触发。
+user-invocable: true
+argument-hint: "<问题>"
+triggers:
+  - "用Ilya的视角"
+  - "Ilya会怎么看"
+  - "Ilya模式"
+  - "ilya perspective"
+  - "sutskever perspective"
+last_updated: 2026-05-04
 ---
 
 # Ilya Sutskever · 思维操作系统

@@ -1,9 +1,9 @@
 ---
 name: bilibili-analyzer
-version: 1.0.0
-description: 分析B站视频，提取关键信息并生成结构化报告。支持关键词搜索、UP主可信度评估、AI摘要。
+version: 1.2.0
+description: 分析B站视频，提取关键信息并生成结构化报告。支持关键词搜索、UP主可信度评估、AI字幕获取、AI摘要。
 user-invocable: true
-argument-hint: "<关键词> 或 --uploader <UID>"
+argument-hint: "<关键词> 或 --uploader <UID> 或 <BV号>"
 triggers:
   - "分析b站"
   - "bilibili分析"
@@ -11,25 +11,33 @@ triggers:
   - "analyze bilibili"
   - "b站搜索"
   - "B站"
-last_updated: 2026-04-19
+last_updated: 2026-05-04
 ---
 
 # B站视频分析器
 
-从搜索到结构化总结的完整流程。
+从搜索到结构化总结的完整流程，支持 AI 字幕获取。
 
-last_updated: 2026-04-19
+## 目录结构
+
+```
+bilibili-analyzer/
+├── SKILL.md                          # 本文件
+└── scripts/
+    └── bilibili_ai_subtitle.py       # AI 字幕获取模块
+```
+
 ---
 
 ## 功能
 
 1. **关键词搜索**：发现相关视频
 2. **可信度评估**：筛选高质量内容
-3. **内容提取**：获取字幕/简介
-4. **AI 总结**：结构化摘要
-5. **价值判断**：是否值得深入
+3. **AI 字幕获取**：获取 B站 AI 生成的字幕
+4. **内容提取**：获取字幕/简介
+5. **AI 总结**：结构化摘要
+6. **价值判断**：是否值得深入
 
-last_updated: 2026-04-19
 ---
 
 ## 使用方式
@@ -56,9 +64,16 @@ last_updated: 2026-04-19
 /bilibili-analyzer BV1xx411c7mC
 ```
 
-分析单个视频详情。
+分析单个视频详情，包含 AI 字幕获取。
 
-last_updated: 2026-04-19
+### 获取 AI 字幕
+
+```bash
+/bilibili-analyzer --subtitle BV1xx411c7mC
+```
+
+仅获取视频的 AI 字幕。
+
 ---
 
 ## 工作流程
@@ -109,7 +124,15 @@ last_updated: 2026-04-19
          │
          ▼
 ┌─────────────────┐
-│ 6. AI 结构化总结 │
+│ 6. AI 字幕获取   │
+│ - subtitle/web/view API │
+│ - 解析 Protobuf  │
+│ - 下载字幕 JSON  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ 7. AI 结构化总结 │
 │ - 一句话摘要    │
 │ - 核心观点      │
 │ - 技术价值      │
@@ -118,26 +141,67 @@ last_updated: 2026-04-19
          │
          ▼
 ┌─────────────────┐
-│ 7. 输出报告      │
+│ 8. 输出报告      │
 │ - Markdown 格式 │
 │ - 按可信度排序  │
 └─────────────────┘
 ```
 
-last_updated: 2026-04-19
+---
+
+## AI 字幕获取
+
+### 获取原理
+
+B站 AI 字幕获取流程：
+
+```
+1. 调用 subtitle/web/view API（返回 Protobuf）
+   https://api.bilibili.com/x/v2/subtitle/web/view?oid={cid}&pid={aid}&...
+   │
+   ▼
+2. 解析 Protobuf 提取 auth_key
+   auth_key 格式: timestamp-{hash1}-0-{hash2}
+   │
+   ▼
+3. 构造字幕 URL
+   https://aisubtitle.hdslb.com/bfs/ai_subtitle/prod/{aid}{cid}{hash}?auth_key={auth_key}
+   │
+   ▼
+4. 下载 JSON 格式字幕
+   {"body": [{"from": 0.0, "content": "..."}, ...]}
+```
+
+### 使用脚本
+
+```bash
+# 直接运行
+python ${CLAUDE_SKILL_DIR}/scripts/bilibili_ai_subtitle.py
+
+# 或在代码中导入
+from scripts.bilibili_ai_subtitle import fetch_bilibili_ai_subtitle, BilibiliCredential
+
+credential = BilibiliCredential(
+    sessdata="your_sessdata",
+    bili_jct="your_bili_jct",
+    buvid3="your_buvid3"
+)
+
+subtitles = await fetch_bilibili_ai_subtitle("BV16XdaBaEBh", credential)
+```
+
+### 注意事项
+
+1. **auth_key 有效期**：约 60 秒，需及时使用
+2. **并非所有视频都有 AI 字幕**：仅部分视频支持
+3. **需要登录态**：SESSDATA cookie 必须有效
+
 ---
 
 ## 可信度计算模型
 
 ```python
 def calculate_credibility(user_info, relation_info, up_stat):
-    """
-    计算 UP 主信服力分数
-
-    返回:
-        score: 0-100 分数
-        level: S/A/B/C/D 等级
-    """
     score = 0
 
     # 1. 粉丝数 (40分)
@@ -189,7 +253,6 @@ def calculate_credibility(user_info, relation_info, up_stat):
 | **C** | 20-39 | 1千-1万 | 谨慎参考 |
 | **D** | <20 | <1千 | 需验证 |
 
-last_updated: 2026-04-19
 ---
 
 ## AI 总结模板
@@ -209,9 +272,6 @@ last_updated: 2026-04-19
 ## 内容
 {subtitle_or_desc}
 
-last_updated: 2026-04-19
----
-
 请输出：
 
 ### 1. 一句话摘要（20字内）
@@ -229,7 +289,6 @@ last_updated: 2026-04-19
 ### 5. 核心关键词
 ```
 
-last_updated: 2026-04-19
 ---
 
 ## 报告模板
@@ -241,9 +300,6 @@ last_updated: 2026-04-19
 > 分析时间：{timestamp}
 > 高价值视频：{high_count} 个
 
-last_updated: 2026-04-19
----
-
 ## 📊 统计
 
 | 指标 | 数值 |
@@ -252,9 +308,6 @@ last_updated: 2026-04-19
 | 高可信度 (S/A) | {high} |
 | 中等可信度 (B) | {medium} |
 | 低可信度 (C/D) | {low} |
-
-last_updated: 2026-04-19
----
 
 ## 🌟 高价值视频
 
@@ -278,18 +331,11 @@ last_updated: 2026-04-19
 
 **是否值得深入**：{recommendation}
 
-last_updated: 2026-04-19
----
-
 ## 📝 中等价值视频
 
 > 共 {count} 个
 
 1. [{title}]({url}) - 可信度：{score}
-2. ...
-
-last_updated: 2026-04-19
----
 
 ## 💡 分析总结
 
@@ -301,18 +347,9 @@ last_updated: 2026-04-19
 - {rec_1}
 ```
 
-last_updated: 2026-04-19
 ---
 
-## 前置依赖
-
-### 安装 bilibili-api
-
-```bash
-pip install bilibili-api-python
-```
-
-### 登录凭证
+## 凭证配置
 
 字幕获取需要登录态。凭证文件路径：`~/.claude/bilibili-credential.json`
 
@@ -326,57 +363,12 @@ pip install bilibili-api-python
 
 从浏览器 Cookie 中提取这三个字段。
 
-### Python 示例代码
+---
 
-```python
-import asyncio
-import json
-from bilibili_api import user, video, Credential
+## 前置依赖
 
-# 加载登录凭证
-def load_credential():
-    try:
-        with open("/Users/wangzhiguo/.claude/bilibili-credential.json") as f:
-            cred_data = json.load(f)
-        return Credential(
-            sessdata=cred_data["SESSDATA"],
-            bili_jct=cred_data["bili_jct"],
-            buvid3=cred_data["buvid3"]
-        )
-    except:
-        return None
-
-async def analyze_video(bvid: str):
-    """分析视频（带登录态）"""
-    credential = load_credential()
-    v = video.Video(bvid=bvid, credential=credential)
-
-    info = await v.get_info()
-    cid = info.get("cid", 0)
-
-    # 获取完整字幕
-    subtitle_text = ""
-    try:
-        subtitle_info = await v.get_subtitle(cid=cid)
-        if subtitle_info and "subtitles" in subtitle_info:
-            for sub in subtitle_info["subtitles"]:
-                subtitle_url = sub.get("subtitle_url", "")
-                if subtitle_url:
-                    import httpx
-                    async with httpx.AsyncClient() as client:
-                        url = f"https:{subtitle_url}" if subtitle_url.startswith("//") else subtitle_url
-                        resp = await client.get(url)
-                        content = resp.json()
-                        for line in content.get("body", []):
-                            subtitle_text += line.get("content", "") + "\n"
-    except:
-        subtitle_text = info.get("desc", "")
-
-    return {
-        "info": info,
-        "subtitle": subtitle_text,
-        "cid": cid
-    }
+```bash
+pip install bilibili-api-python httpx
 ```
 
 ---
@@ -385,10 +377,11 @@ async def analyze_video(bvid: str):
 
 1. **API 频率**：控制并发数，避免限流
 2. **无字幕视频**：使用简介替代
-3. **隐私设置**：部分 UP 主信息可能获取失败
-4. **已删除视频**：跳过处理
+3. **AI 字幕**：并非所有视频都有，auth_key 有效期约 60 秒
+4. **隐私设置**：部分 UP 主信息可能获取失败
+5. **已删除视频**：跳过处理
+6. **登录态失效**：定期更新 Cookie 中的 SESSDATA
 
-last_updated: 2026-04-19
 ---
 
 ## 与 info-tracker 集成

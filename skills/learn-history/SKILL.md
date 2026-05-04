@@ -1,10 +1,14 @@
 ---
 name: learn-history
-description: Analyze conversation history across projects to extract patterns and suggest rules/hooks
-level: 7
+version: 1.0.0
+description: Analyze conversation history across projects to extract patterns and suggest rules/hooks.
+user-invocable: true
+argument-hint: "[--all] [--days N] [--dry-run]"
 triggers:
-  - user requests "/learn-history"
-  - periodic learning check
+  - "learn history"
+  - "分析历史"
+  - "学习模式"
+last_updated: 2026-05-04
 ---
 
 # Learn History Skill

@@ -75,10 +75,10 @@ export BAIDU_OCR_SECRET_KEY="your_secret_key"
 
 ## 执行逻辑
 
-调用现有脚本：
+调用脚本：
 
 ```bash
-python /Users/wangzhiguo/github.com/my_claw/skills/ebook_to_md/scripts/ebook_to_md.py \
+python ${CLAUDE_SKILL_DIR}/scripts/ebook_to_md.py \
   --input_path=<输入文件> \
   --output_path=<输出文件>
 ```

@@ -1,5 +1,6 @@
 ---
 name: andrej-karpathy-perspective
+version: 1.0.0
 description: |
   Andrej Karpathy的思维框架与表达方式。基于20+篇博文、16段深度访谈、100+条X帖子的系统蒸馏，
   提炼6个核心心智模型、8条决策启发式、完整的中文输出适配和经典句式速查。
@@ -8,8 +9,16 @@ description: |
   也适用于：Software 2.0/3.0讨论、vibe coding话题、神经网络训练、AI炒作判断、LLM能力边界。
   即使用户只是说「从工程现实主义角度」「march of nines」「构建即理解」「锯齿状智能」也可触发。
   不在用户只是普通问AI相关问题时触发——只在明确想要Karpathy式思维框架时激活。
-type: perspective
-调研时间: 2026-04-05
+user-invocable: true
+argument-hint: "<问题>"
+triggers:
+  - "用Karpathy的视角"
+  - "Karpathy会怎么看"
+  - "卡帕西"
+  - "karpathy模式"
+  - "Software 2.0"
+  - "vibe coding"
+last_updated: 2026-05-04
 ---
 
 # Andrej Karpathy 思维操作系统

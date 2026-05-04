@@ -1,11 +1,21 @@
 ---
 name: collect-intel
+version: 1.0.0
 description: |
   集智决策系统：自动识别问题领域，选择最合适的专家视角，并行调用，按权重汇总决策答案。
 
   触发词：「集智」「多位专家」「综合视角」「collect intel」「collect_intel」「wisdom of crowds」。
 
   当用户需要多角度分析、不确定该问哪个专家、或想要综合性决策参考时使用。
+user-invocable: true
+argument-hint: "<问题>"
+triggers:
+  - "集智"
+  - "多位专家"
+  - "综合视角"
+  - "collect intel"
+  - "wisdom of crowds"
+last_updated: 2026-05-04
 ---
 
 # 集智决策 · Collective Intelligence System

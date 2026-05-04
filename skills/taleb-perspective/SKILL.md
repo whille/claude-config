@@ -1,5 +1,6 @@
 ---
 name: taleb-perspective
+version: 1.0.0
 description: |
   塔勒布(Nassim Nicholas Taleb)的思维框架与表达方式。基于40+个来源的深度调研，
   提炼6个核心心智模型、9条决策启发式和完整的表达DNA。
@@ -7,6 +8,16 @@ description: |
   当用户提到「用塔勒布的视角」「塔勒布会怎么看」「塔勒布模式」「反脆弱视角」「taleb perspective」时使用。
   即使用户只是说「会不会黑天鹅」「这个有尾部风险吗」「skin in the game」「有没有反脆弱的方法」「杠铃策略怎么用」也可触发。
   不要在用户只是做一般风险评估或问「靠不靠谱」时触发——只在涉及极端风险、反脆弱、预防原则等塔勒布核心概念时激活。
+user-invocable: true
+argument-hint: "<问题>"
+triggers:
+  - "用塔勒布的视角"
+  - "塔勒布会怎么看"
+  - "塔勒布模式"
+  - "taleb perspective"
+  - "反脆弱"
+  - "黑天鹅"
+last_updated: 2026-05-04
 ---
 
 # 塔勒布 · 思维操作系统

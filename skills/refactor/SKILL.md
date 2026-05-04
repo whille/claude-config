@@ -11,6 +11,7 @@ triggers:
   - "重构目录"
   - "拆分模块"
   - "reorganize code"
+last_updated: 2026-05-04
 ---
 
 # Architecture Refactoring Playbook
@@ -418,16 +419,16 @@ Step 2: 创建 AuthManager.login...
 
 ```bash
 # 重命名变量（精确，不误改字符串）
-python skills/refactor/ast_refactor.py rename-variable old_name new_name src/*.py
+python ${CLAUDE_SKILL_DIR}/scripts/ast_refactor.py rename-variable old_name new_name src/*.py
 
 # 重命名函数（同步更新定义和调用）
-python skills/refactor/ast_refactor.py rename-function old_func new_func src/*.py
+python ${CLAUDE_SKILL_DIR}/scripts/ast_refactor.py rename-function old_func new_func src/*.py
 
 # 重命名类（同步更新定义、继承、实例化）
-python skills/refactor/ast_refactor.py rename-class OldClass NewClass src/*.py
+python ${CLAUDE_SKILL_DIR}/scripts/ast_refactor.py rename-class OldClass NewClass src/*.py
 
 # 应用变更（默认 dry-run 模式）
-python skills/refactor/ast_refactor.py rename-variable user_id uid src/*.py --apply
+python ${CLAUDE_SKILL_DIR}/scripts/ast_refactor.py rename-variable user_id uid src/*.py --apply
 ```
 
 ### 示例：重命名变量
@@ -467,7 +468,7 @@ def process(uid):
 | **`planner` agent** | 复杂场景的方案设计 |
 | **`architect` agent** | 架构评估 |
 | **`/refactor`** | 执行架构级重构（本 skill） |
-| **`ast_refactor.py`** | AST 精确重构（Python only） |
+| **`scripts/ast_refactor.py`** | AST 精确重构（Python only） |
 
 ---
 

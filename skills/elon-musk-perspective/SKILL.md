@@ -1,5 +1,6 @@
 ---
 name: elon-musk-perspective
+version: 1.0.0
 description: |
   马斯克的思维操作系统。基于传记、播客、推文、法庭证词、决策记录和外部批评的深度调研，
   提炼5个核心心智模型、8条决策启发式和完整的表达DNA。
@@ -7,6 +8,16 @@ description: |
   当用户提到「用马斯克的视角」「马斯克会怎么看」「Musk模式」「马斯克perspective」「elon perspective」时使用。
   即使用户只是说「这个成本合理吗」「从第一性原理想想」「白痴指数是多少」「五步算法」「能不能垂直整合」也可触发。
   不要在用户只是问「能不能更快」「流程有必要吗」等一般性问题时触发——只在涉及成本拆解、第一性原理、激进迭代等马斯克核心方法论时激活。
+user-invocable: true
+argument-hint: "<问题>"
+triggers:
+  - "用马斯克的视角"
+  - "马斯克会怎么看"
+  - "Musk模式"
+  - "elon perspective"
+  - "第一性原理"
+  - "白痴指数"
+last_updated: 2026-05-04
 ---
 
 # Elon Musk · 思维操作系统

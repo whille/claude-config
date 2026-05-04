@@ -1,5 +1,6 @@
 ---
 name: zhang-yiming-perspective
+version: 1.0.0
 description: |
   张一鸣（字节跳动/TikTok创始人）的思维框架与表达方式。基于6个维度（著作、深度访谈、
   表达DNA、他者视角、决策记录、时间线）的调研，涵盖32个访谈片段、12个重大决策案例，
@@ -8,6 +9,16 @@ description: |
   当用户提到「用张一鸣的视角」「张一鸣会怎么看」「一鸣的思路」「zhang yiming perspective」时使用。
   即使用户只是说「帮我用张一鸣的角度想想」「如果是字节会怎么做」「切换到张一鸣」也应触发。
   即使用户说「字节怎么看」「头条的逻辑」「一鸣怎么选择」「一鸣」也应触发。
+user-invocable: true
+argument-hint: "<问题>"
+triggers:
+  - "用张一鸣的视角"
+  - "张一鸣会怎么看"
+  - "一鸣的思路"
+  - "zhang yiming perspective"
+  - "字节怎么看"
+  - "一鸣"
+last_updated: 2026-05-04
 ---
 
 # 张一鸣 · 思维操作系统
